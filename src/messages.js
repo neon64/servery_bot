@@ -44,7 +44,7 @@ export function handleMessage(senderPsid, receivedMessage) {
     }
 
     // Send the response message
-    callSendAPI(senderPsid, response);
+    callSendAPI(senderPsid, { message: response });
 }
 
 // Handles messaging_postbacks events
@@ -61,7 +61,7 @@ export function handlePostback(senderPsid, receivedPostback) {
         response = { text: "Oops, try sending another image." };
     }
     // Send the message to acknowledge the postback
-    callSendAPI(senderPsid, response);
+    callSendAPI(senderPsid, { message: response });
 }
 
 // Sends response messages via the Send API
@@ -74,7 +74,7 @@ export function callSendAPI(senderPsid, response) {
         recipient: {
             id: senderPsid,
         },
-        message: response,
+        ...response,
     };
 
     // Send the HTTP request to the Messenger Platform
