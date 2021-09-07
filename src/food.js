@@ -1,4 +1,3 @@
-
 // key words we recognize as a type of "meal"
 export const meals = ["breakfast", "brunch", "lunch", "dinner"];
 
@@ -8,8 +7,8 @@ export const ignoreItems = ["chefs selection"];
 
 // display meals
 export const mealsDisplay = {
-    'breakfast': 'Breakfast',
-    'brunch': 'Brunch',
-    'lunch': 'Lunch',
-    'dinner': 'Dinner'
+    breakfast: "Breakfast",
+    brunch: "Brunch",
+    lunch: "Lunch",
+    dinner: "Dinner",
 };
