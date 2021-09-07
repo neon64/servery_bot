@@ -43,9 +43,9 @@ export function inferMeals(receivedMessage) {
 
             let date;
             if(dateReference.type === 'value') {
-                date = new DateTime(dateReference.value)
+                date = DateTime.fromISO(dateReference.value, {setZone: true})
             } else if(dateReference.type === 'interval') {
-                date = new DateTime(dateReference.from.value);
+                date = DateTime.fromISO(dateReference.from.value, {setZone: true});
             }
 
             console.log(date);

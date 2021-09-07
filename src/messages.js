@@ -1,6 +1,13 @@
 import request from "request";
 
 import { inferMeals } from './nlp.js';
+import { lookupMeals } from "./database.js";
+
+function composeMealsReply(meals) {
+    return meals.map(meal => {
+        return meal.getMainDishes().map(dish => dish.description).join("\n");
+    });
+}
 
 // Handles messages events
 export function handleMessage(senderPsid, receivedMessage) {
@@ -11,20 +18,20 @@ export function handleMessage(senderPsid, receivedMessage) {
 
         let inferred = inferMeals(receivedMessage);
 
-        if(inferrred === null) {
-            response = {
-                text: `Sorry, I'm not sure what you mean by that.`,
-            };
+        if(inferred === null) {
+            // Send the response message
+            callSendAPI(senderPsid, { message: { text: `Sorry, I'm not sure what you mean by that.` } });
         } else {
             console.log(inferred);
-            response = {
-                text: `${inferred.date}, meal: ${inferred.meal}`
-            };
+
+            const meals = lookupMeals(inferred);
+
+            const replies = composeMealsReply(meals);
+
+            for(const reply of replies) {
+                callSendAPI(senderPsid, { message: { text: reply } });
+            }
         }
-
-        // Create the payload for a basic text message, which
-        // will be added to the body of your request to the Send API
-
     } else if (receivedMessage.attachments) {
         // Get the URL of the message attachment
         let attachmentUrl = receivedMessage.attachments[0].payload.url;
@@ -55,10 +62,9 @@ export function handleMessage(senderPsid, receivedMessage) {
                 },
             },
         };
-    }
 
-    // Send the response message
-    callSendAPI(senderPsid, { message: response });
+        callSendAPI(senderPsid, { message: response });
+    }
 }
 
 // Handles messaging_postbacks events

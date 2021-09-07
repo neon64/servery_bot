@@ -25,25 +25,21 @@ export async function runServer() {
             response +=
                 "<tr><td>" +
                 new Date(row.menu_date).toDateString() +
-                "</td><td>";
-            let day = JSON.parse(row.menu_contents);
-            for (let [meal, dishes] of Object.entries(day)) {
-                response += "<h6>" + mealsDisplay[meal] + "</h6>";
-
-                response += "<ul>";
-                for (const dish of dishes) {
-                    response += "<li>";
-                    if(dish.role === MAIN) {
-                        response += "<strong>";
-                    }
-                    response += "" + dish.description;
-                    if(dish.role === MAIN) {
-                        response += "</strong>";
-                    }
-                    response += "</li>";
+                "</td><td><h6>" + row.menu_meal + "</h6></td><td>";
+            let data = JSON.parse(row.menu_contents);
+            response += "<ul>";
+            for (const dish of data.dishes) {
+                response += "<li>";
+                if(dish.role === MAIN) {
+                    response += "<strong>";
                 }
-                response += "</ul>";
+                response += "" + dish.description;
+                if(dish.role === MAIN) {
+                    response += "</strong>";
+                }
+                response += "</li>";
             }
+            response += "</ul>";
             response += "</td></tr>\n";
         }
         response += "</table></body>";
@@ -107,8 +103,10 @@ export async function runServer() {
         }
     });
 
+    const hostname = 'localhost';
+
     // listen for requests :)
-    let listener = await app.listen(process.env.PORT, "localhost", function () {
-        console.log("Your app is listening on port " + listener.address().port);
+    let listener = await app.listen(process.env.PORT, hostname, function () {
+        console.log("Your app is listening on http://" + hostname + ":" + listener.address().port);
     });
 }

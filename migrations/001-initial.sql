@@ -2,7 +2,7 @@
 -- Up
 --------------------------------------------------------------------------------
 
-CREATE TABLE menu (menu_date DATE NOT NULL PRIMARY KEY, menu_contents JSON NOT NULL);
+CREATE TABLE menu (menu_date DATE NOT NULL, menu_contents JSON NOT NULL, menu_meal VARCHAR(20) NOT NULL, PRIMARY KEY(menu_date, menu_meal));
 
 --------------------------------------------------------------------------------
 -- Down

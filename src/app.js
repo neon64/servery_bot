@@ -10,6 +10,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import { DateTime } from 'luxon';
 // Imports dependencies and set up http server
 
 import { getMenu } from "./scrape.js";
@@ -18,7 +19,6 @@ import { runServer } from "./server.js";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { openDb } from "./database.js";
-import { getNextMealDay } from "./nlp.js";
 
 yargs(hideBin(process.argv))
     .usage("Runs the server")
@@ -53,13 +53,17 @@ yargs(hideBin(process.argv))
             console.log(menu);
             let db = await openDb();
             for (const [date, contents] of menu) {
-                await db.run(
-                    "INSERT OR REPLACE INTO menu VALUES (:day, json(:contents))",
-                    {
-                        ":day": new DateTime(date).toISODate(),
-                        ":contents": JSON.stringify(contents),
-                    }
-                );
+                for (const [ meal, dishes ] of Object.entries(contents)) {
+                    await db.run(
+                        "INSERT OR REPLACE INTO menu (menu_date, menu_meal, menu_contents) VALUES (:day, :meal, json(:contents))",
+                        {
+                            ":day": DateTime.fromJSDate(date).toSQLDate(),
+                            ":meal": meal,
+                            ":contents": JSON.stringify({ dishes: dishes }),
+                        }
+                    );
+                }
+
             }
         }
     )

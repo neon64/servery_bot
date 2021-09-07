@@ -8,7 +8,9 @@ export const meals = {
     'break fast': 'breakfast',
     'brunch': 'brunch',
     'lunch': 'lunch',
+    'linch': 'lunch',
     'dins': 'dinner',
+    'diner': 'dinner',
     'supper': 'supper',
     'dinner': 'dinner'
 };
@@ -35,6 +37,13 @@ export const MAIN = 'main';
 export const VEGO = 'vegetarian';
 export const STAPLE = 'staple';
 
+export const mealsSortOrder = {
+    breakfast: 0,
+    brunch: 5,
+    lunch: 10,
+    dinner: 20
+};
+
 export const identifyDish = (dish) => {
     if(dish === 'Chefs Selection Soup')  {
         return { role: SOUP, description: dish };
@@ -49,3 +58,19 @@ export const identifyDish = (dish) => {
         return { role: MAIN, description: dish };
     }
 };
+
+export class Meal {
+    constructor(date, mealType, dishes) {
+        this.date = date;
+        this.mealType = mealType;
+        this.dishes = dishes;
+    }
+
+    getMainDishes() {
+        return this.dishes.filter(dish => dish.role === MAIN);
+    }
+
+    static fromDb(row) {
+        return new Meal(DateTime.fromSQL(row.menu_date), row.menu_meal, JSON.parse(row.menu_contents).dishes);
+    }
+}
