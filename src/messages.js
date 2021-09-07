@@ -1,16 +1,30 @@
 import request from "request";
 
+import { inferMeals } from './nlp.js';
+
 // Handles messages events
 export function handleMessage(senderPsid, receivedMessage) {
     let response;
 
     // Checks if the message contains text
     if (receivedMessage.text) {
+
+        let inferred = inferMeals(receivedMessage);
+
+        if(inferrred === null) {
+            response = {
+                text: `Sorry, I'm not sure what you mean by that.`,
+            };
+        } else {
+            console.log(inferred);
+            response = {
+                text: `${inferred.date}, meal: ${inferred.meal}`
+            };
+        }
+
         // Create the payload for a basic text message, which
         // will be added to the body of your request to the Send API
-        response = {
-            text: `You sent the message: '${receivedMessage.text}'. Now send me an attachment!`,
-        };
+
     } else if (receivedMessage.attachments) {
         // Get the URL of the message attachment
         let attachmentUrl = receivedMessage.attachments[0].payload.url;

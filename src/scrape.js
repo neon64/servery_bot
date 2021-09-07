@@ -1,11 +1,11 @@
 import puppeteer from "puppeteer";
 import cheerio from "cheerio";
-import { meals, ignoreItems } from "./food.js";
+import { meals, identifyDish } from "./food.js";
 
 // goes through the whole OneLogin authentication process in order to scrape the
-let getMenuHtml = async () => {
-    console.log("launching headless browser instance...");
-    const browser = await puppeteer.launch();
+let getMenuHtml = async (headless) => {
+    console.log("launching browser instance (headless=" + headless + ")");
+    const browser = await puppeteer.launch({ headless: headless });
     const page = await browser.newPage();
     await page.goto(process.env.GRAIL_ENDPOINT, { waitUntil: "networkidle2" });
     console.log("finished loading login page");
@@ -63,19 +63,20 @@ function menuHtmlToStructuredData(html) {
 
             const lowerText = part.toLowerCase();
 
-            if (meals.includes(lowerText)) {
-                console.log("Detected meal:", lowerText);
-                currentMeal = lowerText;
+            if (Object.keys(meals).includes(lowerText)) {
+                const meal = meals[lowerText];
+                console.log("Detected meal:", meal);
+                currentMeal = meal;
                 if (currentDate !== null) {
                     menu.get(currentDate)[currentMeal] = [];
                 } else {
-                    console.warn("No date for meal", lowerText);
+                    console.warn("No date for meal", meal);
                 }
                 continue;
             }
 
             if ((currentDate !== null, currentMeal !== null)) {
-                menu.get(currentDate)[currentMeal].push(part);
+                menu.get(currentDate)[currentMeal].push(identifyDish(part));
             } else {
                 console.warn("ignoring line", part);
             }
@@ -90,16 +91,15 @@ function menuHtmlToStructuredData(html) {
                 [meal].filter(
                     (item, index) =>
                         menu.get(date)[meal].indexOf(item) === index
-                )
-                .filter((item) => !ignoreItems.includes(item.toLowerCase()));
+                );
         });
     }
 
     return menu;
 }
 
-const getMenu = async () => {
-    let html = await getMenuHtml();
+const getMenu = async (headless) => {
+    let html = await getMenuHtml(headless);
     return menuHtmlToStructuredData(html);
 };
 

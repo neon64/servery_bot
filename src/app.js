@@ -18,6 +18,7 @@ import { runServer } from "./server.js";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { openDb } from "./database.js";
+import { getNextMealDay } from "./nlp.js";
 
 yargs(hideBin(process.argv))
     .usage("Runs the server")
@@ -41,16 +42,21 @@ yargs(hideBin(process.argv))
     .command(
         "scrape",
         "Scrape the menu",
-        () => {},
-        async () => {
-            let menu = await getMenu();
+        (yargs) => {
+            return yargs
+                .boolean('headless')
+                .default('headless', true)
+                .describe('headless', 'Perform scraping without opening a browser window');
+        },
+        async (argv) => {
+            let menu = await getMenu(argv.headless);
             console.log(menu);
             let db = await openDb();
             for (const [date, contents] of menu) {
                 await db.run(
                     "INSERT OR REPLACE INTO menu VALUES (:day, json(:contents))",
                     {
-                        ":day": date.toISOString(),
+                        ":day": new DateTime(date).toISODate(),
                         ":contents": JSON.stringify(contents),
                     }
                 );

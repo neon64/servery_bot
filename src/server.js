@@ -2,7 +2,7 @@ import express from "express";
 import pkg from "body-parser";
 const { urlencoded, json } = pkg;
 import { openDb } from "./database.js";
-import { mealsDisplay } from "./food.js";
+import { MAIN, mealsDisplay } from "./food.js";
 
 import { handleMessage, handlePostback } from "./messages.js";
 
@@ -32,11 +32,19 @@ export async function runServer() {
 
                 response += "<ul>";
                 for (const dish of dishes) {
-                    response += "<li>" + dish + "</li>";
+                    response += "<li>";
+                    if(dish.role === MAIN) {
+                        response += "<strong>";
+                    }
+                    response += "" + dish.description;
+                    if(dish.role === MAIN) {
+                        response += "</strong>";
+                    }
+                    response += "</li>";
                 }
                 response += "</ul>";
             }
-            response += "</td></tr>";
+            response += "</td></tr>\n";
         }
         response += "</table></body>";
         res.send(response);
@@ -69,8 +77,6 @@ export async function runServer() {
     // Creates the endpoint for your webhook
     app.post("/webhook", (req, res) => {
         let body = req.body;
-
-        console.log(body);
 
         // Checks if this is an event from a page subscription
         if (body.object === "page") {

@@ -4,8 +4,9 @@
     "description": "An example webhook for Facebook Messenger quick start tutorial.",
     "main": "app.js",
     "scripts": {
+        "scrape": "node src/app.js scrape",
         "migrate": "node src/app.js migrate",
-        "start": "node src/app.js serve",
+        "serve": "node src/app.js serve",
         "lint": "eslint --ext js src/ && prettier --check ."
     },
     "dependencies": {
@@ -15,6 +16,7 @@
         "dotenv": "^6.2.0",
         "express": "^4.16.4",
         "got": "^11.8.2",
+        "luxon": "^2.0.2",
         "puppeteer": "^10.2.0",
         "puppeteer-core": "^10.2.0",
         "request": "^2.88.0",
