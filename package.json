@@ -7,10 +7,20 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "axios": "^0.21.4",
     "body-parser": "^1.18.3",
+    "cheerio": "^1.0.0-rc.10",
     "dotenv": "^6.2.0",
     "express": "^4.16.4",
-    "request": "^2.88.0"
+    "got": "^11.8.2",
+    "puppeteer": "^10.2.0",
+    "puppeteer-core": "^10.2.0",
+    "request": "^2.88.0",
+    "sqlite": "^4.0.23",
+    "sqlite3": "^5.0.2",
+    "tough-cookie": "^4.0.0",
+    "yargs": "^17.1.1",
+    "zombie": "^6.1.4"
   },
   "engines": {
     "node": ">=10.x"
@@ -23,5 +33,6 @@
   "keywords": [
     "messenger",
     "webhook"
-  ]
+  ],
+  "type": "module"
 }
