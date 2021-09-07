@@ -4,7 +4,8 @@
   "description": "An example webhook for Facebook Messenger quick start tutorial.",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node src/app.js",
+    "lint": "eslint --ext js src/"
   },
   "dependencies": {
     "axios": "^0.21.4",
@@ -34,5 +35,9 @@
     "messenger",
     "webhook"
   ],
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "prettier": "^2.3.2"
+  }
 }

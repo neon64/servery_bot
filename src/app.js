@@ -12,23 +12,23 @@ dotenv.config();
 
 // Imports dependencies and set up http server
 
-import { getMenu } from './src/scrape.js';
-import { runServer } from './src/server.js';
+import { getMenu } from './scrape.js';
+import { runServer } from './server.js';
 
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { openDb } from './src/database.js';
+import { openDb } from './database.js';
 
-const argv = yargs(hideBin(process.argv))
+yargs(hideBin(process.argv))
     .usage('Runs the server')
-    .command('serve', 'start the server', (yargs) => {}, (argv) => {
+    .command('serve', 'start the server', () => {}, () => {
         runServer();
     })
-    .command('migrate', 'Run migrations', (yargs) => {}, async (argv) => {
+    .command('migrate', 'Run migrations', () => {}, async () => {
         let db = await openDb();
         await db.migrate();
     })
-    .command('scrape', 'Scrape the menu', (yargs) => {}, async (argv) => {
+    .command('scrape', 'Scrape the menu', () => {}, async () => {
         let menu = await getMenu();
         console.log(menu);
         let db = await openDb();

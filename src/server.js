@@ -1,11 +1,10 @@
-import request from 'request';
 import express from 'express';
 import pkg from 'body-parser';
 const { urlencoded, json } = pkg;
 import { openDb } from './database.js';
 import { mealsDisplay } from './food.js';
 
-import { handleMessage, handlePostback, callSendAPI } from './messages.js';
+import { handleMessage, handlePostback } from './messages.js';
 
 export async function runServer() {
     const app = express();

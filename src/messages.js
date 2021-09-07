@@ -1,3 +1,4 @@
+import request from 'request';
 
 // Handles messages events
 export function handleMessage(senderPsid, receivedMessage) {
@@ -82,7 +83,7 @@ export function callSendAPI(senderPsid, response) {
       'qs': { 'access_token': PAGE_ACCESS_TOKEN },
       'method': 'POST',
       'json': requestBody
-    }, (err, _res, _body) => {
+    }, (err) => {
       if (!err) {
         console.log('Message sent!');
       } else {
