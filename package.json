@@ -4,8 +4,9 @@
     "description": "An example webhook for Facebook Messenger quick start tutorial.",
     "main": "app.js",
     "scripts": {
-        "start": "node src/app.js",
-        "lint": "eslint --ext js src/"
+        "migrate": "node src/app.js migrate",
+        "start": "node src/app.js serve",
+        "lint": "eslint --ext js src/ && prettier --check ."
     },
     "dependencies": {
         "axios": "^0.21.4",
@@ -38,6 +39,7 @@
     "type": "module",
     "devDependencies": {
         "eslint": "^7.32.0",
+        "eslint-config-prettier": "^8.3.0",
         "prettier": "^2.3.2"
     }
 }
