@@ -71,13 +71,13 @@ export async function runServer() {
     });
 
     // Creates the endpoint for your webhook
-    app.post("/webhook", (req, res) => {
+    app.post("/webhook", async (req, res) => {
         let body = req.body;
 
         // Checks if this is an event from a page subscription
         if (body.object === "page") {
             // Iterates over each entry - there may be multiple if batched
-            body.entry.forEach(function (entry) {
+            for(let entry of body.entry) {
                 // Gets the body of the webhook event
                 let webhookEvent = entry.messaging[0];
                 console.log(webhookEvent);
@@ -89,11 +89,11 @@ export async function runServer() {
                 // Check if the event is a message or postback and
                 // pass the event to the appropriate handler function
                 if (webhookEvent.message) {
-                    handleMessage(senderPsid, webhookEvent.message);
+                    await handleMessage(senderPsid, webhookEvent.message);
                 } else if (webhookEvent.postback) {
                     handlePostback(senderPsid, webhookEvent.postback);
                 }
-            });
+            }
 
             // Returns a '200 OK' response to all requests
             res.status(200).send("EVENT_RECEIVED");

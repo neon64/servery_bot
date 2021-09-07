@@ -1,7 +1,7 @@
 // To further interpret what the user means (on top of the built-in NLP service)
 
 import { meals, mealsExpired } from './food.js';
-import { DateTime } from 'luxon';
+import { Interval, DateTime } from 'luxon';
 
 export function findMatchingMeal(receivedMessage) {
     const lower = receivedMessage.text.toLowerCase();
@@ -30,6 +30,25 @@ export const getNextMealDay = (meal) => {
     }
 }
 
+export const humanFormatDay = (day, meal) => {
+    const today = nowInServeryTimezone();
+    const todayStart = today.set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+    const dayStart = day.set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+    const duration = Interval.fromDateTimes(todayStart, dayStart).toDuration();
+    const days = duration.as('days');
+    console.log(days);
+    console.log(todayStart.toString(), dayStart.toString());
+    if(days == 0) {
+        return (meal ? meal + " " : "") + 'today';
+    } else if(days == 1) {
+        return (meal ? meal + " " : "") + 'tomorrow';
+    } else if(days <= 6) {
+        return (meal ? meal + " on " : "") + day.toFormat('EEEE');
+    } else {
+        return (meal ? meal + " on " : "") + day.toFormat('EEEE MMMM d');
+    }
+}
+
 export function inferMeals(receivedMessage) {
     const datetimes = receivedMessage.nlp.entities['wit$datetime:datetime'];
     const mealFilter = findMatchingMeal(receivedMessage);
@@ -43,9 +62,9 @@ export function inferMeals(receivedMessage) {
 
             let date;
             if(dateReference.type === 'value') {
-                date = DateTime.fromISO(dateReference.value, {setZone: true})
+                date = DateTime.fromISO(dateReference.value, { zone: process.env.SERVERY_TIMEZONE })
             } else if(dateReference.type === 'interval') {
-                date = DateTime.fromISO(dateReference.from.value, {setZone: true});
+                date = DateTime.fromISO(dateReference.from.value, { zone: process.env.SERVERY_TIMEZON});
             }
 
             console.log(date);

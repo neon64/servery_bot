@@ -71,6 +71,6 @@ export class Meal {
     }
 
     static fromDb(row) {
-        return new Meal(DateTime.fromSQL(row.menu_date), row.menu_meal, JSON.parse(row.menu_contents).dishes);
+        return new Meal(DateTime.fromSQL(row.menu_date, { zone: process.env.SERVERY_TIMEZONE }), row.menu_meal, JSON.parse(row.menu_contents).dishes);
     }
 }
