@@ -10,7 +10,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 // Imports dependencies and set up http server
 
 import { getMenu } from "./scrape.js";
@@ -44,16 +44,19 @@ yargs(hideBin(process.argv))
         "Scrape the menu",
         (yargs) => {
             return yargs
-                .boolean('headless')
-                .default('headless', true)
-                .describe('headless', 'Perform scraping without opening a browser window');
+                .boolean("headless")
+                .default("headless", true)
+                .describe(
+                    "headless",
+                    "Perform scraping without opening a browser window"
+                );
         },
         async (argv) => {
             let menu = await getMenu(argv.headless);
             console.log(menu);
             let db = await openDb();
             for (const [date, contents] of menu) {
-                for (const [ meal, dishes ] of Object.entries(contents)) {
+                for (const [meal, dishes] of Object.entries(contents)) {
                     await db.run(
                         "INSERT OR REPLACE INTO menu (menu_date, menu_meal, menu_contents) VALUES (:day, :meal, json(:contents))",
                         {
@@ -63,7 +66,6 @@ yargs(hideBin(process.argv))
                         }
                     );
                 }
-
             }
         }
     )

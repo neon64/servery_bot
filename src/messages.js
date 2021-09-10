@@ -1,26 +1,29 @@
-import { inferMeals, humanFormatDay } from './nlp.js';
+import { inferMeals, humanFormatDay } from "./nlp.js";
 import { lookupMeals } from "./database.js";
 import got from "got";
-import { mealsDisplay } from './food.js';
-import { DateTime } from 'luxon';
+import { mealsDisplay } from "./food.js";
+import { DateTime } from "luxon";
 
 const greetings = ["Howdy!", "Hey!", "Hi!", "Hello!"];
 
-const helperReplies = () =>  {
-    const today = DateTime.fromObject({}, { zone: process.env.SERVERY_TIMEZONE });
+const helperReplies = () => {
+    const today = DateTime.fromObject(
+        {},
+        { zone: process.env.SERVERY_TIMEZONE }
+    );
     return [
         {
-            "content_type":"text",
-            "title": humanFormatDay(today.plus({ days: 1 })) + "'s menu",
-            "payload": "1day"
+            content_type: "text",
+            title: humanFormatDay(today.plus({ days: 1 })) + "'s menu",
+            payload: "1day",
         },
         {
-            "content_type":"text",
-            "title": humanFormatDay(today.plus({ days: 2 })) + "'s menu",
-            "payload": "2days"
-        }
+            content_type: "text",
+            title: humanFormatDay(today.plus({ days: 2 })) + "'s menu",
+            payload: "2days",
+        },
     ];
-}    ;
+};
 
 export function getRandomGreeting() {
     return greetings[Math.floor(Math.random() * greetings.length)];
@@ -28,22 +31,31 @@ export function getRandomGreeting() {
 
 function composeMealsReply(meals) {
     const prelude = [getRandomGreeting()];
-    if(meals.length === 0) {
-        return prelude.concat(["Sorry, I'll have to get back to you on that one."]);
+    if (meals.length === 0) {
+        return prelude.concat([
+            "Sorry, I'll have to get back to you on that one.",
+        ]);
     }
-    if(meals.length > 1) {
+    if (meals.length > 1) {
         const humanDay = humanFormatDay(meals[0].date);
         prelude.push(`Here's the menu for ${humanDay}:`);
     }
     return prelude.concat([
-        meals.map(meal => {
-            const mealDisplay = mealsDisplay[meal.mealType];
-            let dishes = meal.getMainDishes().map(dish => dish.description).join("\n");
-            if(meals.length === 1) {
-                return humanFormatDay(meal.date, mealDisplay) + " is " + dishes;
-            }
-            return mealDisplay + ": " + dishes;
-        }).join("\n")
+        meals
+            .map((meal) => {
+                const mealDisplay = mealsDisplay[meal.mealType];
+                let dishes = meal
+                    .getMainDishes()
+                    .map((dish) => dish.description)
+                    .join("\n");
+                if (meals.length === 1) {
+                    return (
+                        humanFormatDay(meal.date, mealDisplay) + " is " + dishes
+                    );
+                }
+                return mealDisplay + ": " + dishes;
+            })
+            .join("\n"),
     ]);
 }
 
@@ -59,40 +71,53 @@ export async function handleMessage(senderPsid, receivedMessage) {
 
     // Checks if the message contains text
     if (receivedMessage.text) {
-
-        const greeting = firstTrait(receivedMessage.nlp, 'wit$greetings');
-        if(greeting && greeting.confidence > 0.8) {
-            await callSendAPI(senderPsid, { message: { text: getRandomGreeting(), 'quick_replies': helperReplies() } });
+        const greeting = firstTrait(receivedMessage.nlp, "wit$greetings");
+        if (greeting && greeting.confidence > 0.8) {
+            await callSendAPI(senderPsid, {
+                message: {
+                    text: getRandomGreeting(),
+                    quick_replies: helperReplies(),
+                },
+            });
             return;
         }
 
-        const thanks = firstTrait(receivedMessage.nlp, 'wit$thanks');
-        if(thanks && thanks.confidence > 0.8) {
-            await callSendAPI(senderPsid, { message: { text: 'No worries at all!' } });
+        const thanks = firstTrait(receivedMessage.nlp, "wit$thanks");
+        if (thanks && thanks.confidence > 0.8) {
+            await callSendAPI(senderPsid, {
+                message: { text: "No worries at all!" },
+            });
             return;
         }
 
-        const bye = firstTrait(receivedMessage.nlp, 'wit$bye');
-        if(bye && bye.confidence > 0.8) {
-            await callSendAPI(senderPsid, { message: { text: 'Good bye! Sorry to see you go.' } });
+        const bye = firstTrait(receivedMessage.nlp, "wit$bye");
+        if (bye && bye.confidence > 0.8) {
+            await callSendAPI(senderPsid, {
+                message: { text: "Good bye! Sorry to see you go." },
+            });
             return;
         }
 
         let inferred = inferMeals(receivedMessage);
 
-        if(inferred === null) {
+        if (inferred === null) {
             // Send the response message
-            await callSendAPI(senderPsid, { message: { text: `Sorry, I couldn't understand your message. Try some of these suggestions to start.`, 'quick_replies': helperReplies() } });
+            await callSendAPI(senderPsid, {
+                message: {
+                    text: `Sorry, I couldn't understand your message. Try some of these suggestions to start.`,
+                    quick_replies: helperReplies(),
+                },
+            });
         } else {
-            console.log('Inferred req', inferred);
+            console.log("Inferred req", inferred);
 
             const meals = await lookupMeals(inferred);
 
             console.log(meals);
             const replies = composeMealsReply(meals);
-            console.log('Sending replies to user', replies);
+            console.log("Sending replies to user", replies);
 
-            for(const reply of replies) {
+            for (const reply of replies) {
                 await callSendAPI(senderPsid, { message: { text: reply } });
             }
         }
@@ -162,11 +187,8 @@ export function callSendAPI(senderPsid, response) {
     };
 
     // Send the HTTP request to the Messenger Platform
-    return got.post(
-        "https://graph.facebook.com/v2.6/me/messages",
-        {
-            searchParams: { access_token: PAGE_ACCESS_TOKEN },
-            json: requestBody
-        }
-    );
+    return got.post("https://graph.facebook.com/v2.6/me/messages", {
+        searchParams: { access_token: PAGE_ACCESS_TOKEN },
+        json: requestBody,
+    });
 }

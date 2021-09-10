@@ -1,4 +1,4 @@
 node_modules
 .env
 data
-example_nlp_responses.js
+example_nlp_responses.txt

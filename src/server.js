@@ -2,7 +2,7 @@ import express from "express";
 import pkg from "body-parser";
 const { urlencoded, json } = pkg;
 import { openDb } from "./database.js";
-import { MAIN, mealsDisplay } from "./food.js";
+import { MAIN } from "./food.js";
 
 import { handleMessage, handlePostback } from "./messages.js";
 
@@ -25,16 +25,18 @@ export async function runServer() {
             response +=
                 "<tr><td>" +
                 new Date(row.menu_date).toDateString() +
-                "</td><td><h6>" + row.menu_meal + "</h6></td><td>";
+                "</td><td><h6>" +
+                row.menu_meal +
+                "</h6></td><td>";
             let data = JSON.parse(row.menu_contents);
             response += "<ul>";
             for (const dish of data.dishes) {
                 response += "<li>";
-                if(dish.role === MAIN) {
+                if (dish.role === MAIN) {
                     response += "<strong>";
                 }
                 response += "" + dish.description;
-                if(dish.role === MAIN) {
+                if (dish.role === MAIN) {
                     response += "</strong>";
                 }
                 response += "</li>";
@@ -77,7 +79,7 @@ export async function runServer() {
         // Checks if this is an event from a page subscription
         if (body.object === "page") {
             // Iterates over each entry - there may be multiple if batched
-            for(let entry of body.entry) {
+            for (let entry of body.entry) {
                 // Gets the body of the webhook event
                 let webhookEvent = entry.messaging[0];
                 console.log(webhookEvent);
@@ -103,10 +105,15 @@ export async function runServer() {
         }
     });
 
-    const hostname = 'localhost';
+    const hostname = "localhost";
 
     // listen for requests :)
     let listener = await app.listen(process.env.PORT, hostname, function () {
-        console.log("Your app is listening on http://" + hostname + ":" + listener.address().port);
+        console.log(
+            "Your app is listening on http://" +
+                hostname +
+                ":" +
+                listener.address().port
+        );
     });
 }
