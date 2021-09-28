@@ -26,12 +26,12 @@ const helperReplies = () => {
     ];
 };
 
-const quickRepliesAfterAnswering = (user, mealRequest) => {
+const quickRepliesAfterAnswering = (user, mealRequest, tag) => {
     let replies = [];
     if(typeof user.payload.once_off_dietary_override === 'undefined') {
         replies.push({
             content_type: "text",
-            title: user.shouldShowVego() ? 'always hide vego' : 'show vego options',
+            title: user.shouldShowVego() ? 'Always hide vego' : 'Show vego options',
             payload: JSON.stringify(user.shouldShowVego() ? {} : { once_off_dietary_override: User.SHOW_ALL, original_request: mealRequest.serialize() }),
         });
     } else {
@@ -39,8 +39,16 @@ const quickRepliesAfterAnswering = (user, mealRequest) => {
         // give the user options to make that permanent
         replies.push({
             content_type: "text",
-            title: user.shouldShowVego() ? 'always show vego' : 'always hide vego',
+            title: user.shouldShowVego() ? 'Always show vego' : 'Always hide vego',
             payload: JSON.stringify({}),
+        });
+    }
+
+    if(tag) {
+        replies.push({
+            content_type: "text",
+            title: "Unsubscribe",
+            payload: JSON.stringify({})
         });
     }
 
@@ -265,7 +273,7 @@ export async function menuReply(db, request, user, tag, concatReplies) {
     for(let i = 0; i < replies.length; i++) {
         let response = { message: { text: replies[i] } };
         if(i === replies.length - 1) {
-            response.message.quick_replies = quickRepliesAfterAnswering(user, request);
+            response.message.quick_replies = quickRepliesAfterAnswering(user, request, tag);
         }
         if(tag) {
             response.tag = tag;
