@@ -20,7 +20,7 @@ export async function runServer() {
 
     // Respond with 'Hello World' when a GET request is made to the homepage
     app.get("/", async (_req, res) => {
-        const response = '<body><h1>The Servery</h1><a href="/api/menu">/api/menu - dump all items in the menu</a></body>';
+        const response = '<body><h1>The Servery</h1><p><a href="/api/menu">/api/menu - dump all items in the menu</a></p><p><a href="/api/users">/api/users - show all user subscriptions</a></p></body>';
         res.send(response);
     });
 
