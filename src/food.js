@@ -51,9 +51,11 @@ export const identifyDish = (dish) => {
         const description = dish.replace("(V)", "").trim();
         return { role: VEGO, description };
     } else if (
-        dish.toLowerCase().startsWith("assorted breads, cereals") ||
+        dish.toLowerCase().includes("assorted") && dish.toLowerCase().includes("cereals") ||
         dish.toLowerCase().startsWith("seasonal vegetables") ||
-        dish.toLowerCase().includes("chefs selection")
+        dish.toLowerCase().includes("chefs selection") ||
+        (dish.toLowerCase().includes("chefs") && dish.toLowerCase().includes("of the day")) ||
+        dish.toLowerCase() === "boiled eggs, baked beans"
     ) {
         return { role: STAPLE, description: dish };
     } else {
@@ -61,24 +63,3 @@ export const identifyDish = (dish) => {
     }
 };
 
-export class Meal {
-    constructor(date, mealType, dishes) {
-        this.date = date;
-        this.mealType = mealType;
-        this.dishes = dishes;
-    }
-
-    getMainDishes() {
-        return this.dishes.filter((dish) => dish.role === MAIN);
-    }
-
-    static fromDb(row) {
-        return new Meal(
-            DateTime.fromSQL(row.menu_date, {
-                zone: process.env.SERVERY_TIMEZONE,
-            }),
-            row.menu_meal,
-            JSON.parse(row.menu_contents).dishes
-        );
-    }
-}
