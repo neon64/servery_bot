@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { DateTime, Duration } from "luxon";
 import { open } from "sqlite";
 import sqlite3 from "sqlite3";
 import { MAIN, mealsSortOrder, VEGO } from "./food.js";
@@ -72,11 +72,12 @@ export class Meal {
 
 
 export class User {
-    constructor(psid, subscription, subscription_time, dietary_preference) {
+    constructor(psid, subscription, subscription_time, dietary_preference, last_contacted) {
         this.psid = psid;
         this.subscription = subscription;
-        this.subscription_time = subscription_time;
+        this.subscription_time = Duration.fromISOTime(subscription_time);
         this.dietary_preference = dietary_preference;
+        this.last_contacted = last_contacted === null ? null : DateTime.fromISO(last_contacted, { zone: process.env.SERVERY_TIMEZONE });
         if(this.dietary_preference === null) {
             this.dietary_preference = User.HIDE_VEGO;
         }
@@ -120,22 +121,27 @@ export class User {
     async setSubscription(db, subscription, subscription_time) {
         this.subscription = subscription;
         this.subscription_time = subscription_time;
-        await db.run(
-            "INSERT OR REPLACE INTO messenger_users (user_psid, user_subscription, user_subscription_time) VALUES (:psid, :subscriptionType, :subscriptionTime)",
-            {
-                ":psid": this.psid,
-                ":subscriptionType": this.subscription,
-                ":subscriptionTime": this.subscription_time === null ? null : this.subscription_time.toISOTime()
-            }
-        );
+        await this.update(db);
     }
 
     async setDietaryPrefs(db, dietary_preference) {
         this.dietary_preference = dietary_preference;
+        await this.update(db);
+    }
+
+    async setLastContacted(db, last_contacted) {
+        this.last_contacted = last_contacted;
+        await this.update(db);
+    }
+
+    async update(db) {
         await db.run(
-            "INSERT OR REPLACE INTO messenger_users (user_psid, user_dietary_prefs) VALUES (:psid, :dietary)",
+            "INSERT OR REPLACE INTO messenger_users (user_psid, user_subscription, user_subscription_time, user_last_contacted, user_dietary_prefs) VALUES (:psid, :subscriptionType, :subscriptionTime, :last_contacted, :dietary)",
             {
                 ":psid": this.psid,
+                ":subscriptionType": this.subscription,
+                ":subscriptionTime": this.subscription_time === null ? null : this.subscription_time.toISOTime(),
+                ":last_contacted": this.last_contacted.toISO(),
                 ":dietary": this.dietary_preference
             }
         );
@@ -146,6 +152,11 @@ export class User {
         if(!row) {
             return new User(psid, null, null, null);
         }
-        return new User(row.user_psid, row.user_subscription, row.user_subscription_time, row.user_dietary_prefs);
+        return new User(row.user_psid, row.user_subscription, row.user_subscription_time, row.user_dietary_prefs, row.user_last_contacted);
+    }
+
+    static async allSubscribedUsers(db) {
+        let rows = await db.all("select * from messenger_users where user_subscription IS NOT NULL");
+        return rows.map(row => { return new User(row.user_psid, row.user_subscription, row.user_subscription_time, row.user_dietary_prefs, row.user_last_contacted) });
     }
 }

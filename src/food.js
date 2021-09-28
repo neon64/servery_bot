@@ -11,6 +11,7 @@ export const meals = {
     linch: "lunch",
     dins: "dinner",
     diner: "dinner",
+    dessert: "dinner",
     supper: "supper",
     dinner: "dinner",
 };

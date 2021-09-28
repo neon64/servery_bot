@@ -17,7 +17,8 @@ import { runServer } from "./server.js";
 
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { Meal, openDb } from "./database.js";
+import { Meal, openDb, User } from "./database.js";
+import { processSubscriptions } from "./subscriptions.js";
 
 yargs(hideBin(process.argv))
     .usage("Runs the server")
@@ -62,6 +63,17 @@ yargs(hideBin(process.argv))
                 }
             }
             console.log('Upserted ' + updated + ' rows');
+        }
+    )
+    .command(
+        "cron",
+        "Send menu to subscribed users on a timer",
+        () => {},
+        async (argv) => {
+            const db = await openDb();
+            const subscribedUsers = await User.allSubscribedUsers(db);
+
+            await processSubscriptions(db, subscribedUsers);
         }
     )
     .help().argv;

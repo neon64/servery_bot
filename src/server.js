@@ -5,6 +5,7 @@ import { openDb } from "./database.js";
 
 import { handleMessage, handlePostback } from "./messages.js";
 import { handleWebhook, handleWebhookVerify } from "./messenger/utils.js";
+import expressBasicAuth from "express-basic-auth";
 
 const HOSTNAME = "localhost";
 
@@ -28,7 +29,9 @@ export async function runServer() {
         res.send(response);
     });
 
-    app.get("/api/menu", async (_req, res) => {
+    const router = express.Router();
+
+    router.get("/menu", async (_req, res) => {
         const db = await openDb();
         const result = await db.all("select * from menu");
         const items = result.map((item) => {
@@ -38,11 +41,15 @@ export async function runServer() {
         res.json(items);
     });
 
-    app.get("/api/users", async (_req, res) => {
+    router.get("/users", async (_req, res) => {
         const db = await openDb();
         const result = await db.all("select * from messenger_users");
         res.json(result);
     });
+
+    let credentials = {}
+    credentials[process.env.HTTP_BASIC_USER] = process.env.HTTP_BASIC_PASSWORD;
+    app.use('/api', expressBasicAuth({ users: credentials, challenge: true, realm: 'servery_bot' }), router);
 
     // Adds support for GET requests to our webhook
     app.get("/webhook", handleWebhookVerify);

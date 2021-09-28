@@ -15,12 +15,12 @@ const helperReplies = () => {
         },
         {
             content_type: "text",
-            title: humanFormatDay(getNextMealDay('dinner').plus({ days: 1 })) + "'s menu",
+            title: humanFormatDay(getNextMealDay('dinner').plus({ days: 1 })),
             payload: '{}',
         },
         {
             content_type: "text",
-            title: "remind me each morning",
+            title: "send every morning",
             payload: '{}',
         },
     ];
@@ -110,7 +110,7 @@ function composeMealsReply(user, meals) {
                 if (meals.length === 1) {
                     response += humanFormatDay(meal.date, mealDisplay) + " is " + dishes.join("\n");
                 } else {
-                    response += mealDisplay + ":\n" + dishes.join("\n");
+                    response += mealDisplay + ": " + dishes.join("\n");
                 }
                 if(user.shouldShowVego() && vego.length > 0) {
                     response += "\n" + vego.join("\n") + " (V)";
@@ -129,7 +129,7 @@ async function handleSentiments(user, receivedMessage, db) {
     if (greeting && greeting.confidence > 0.8) {
         await callSendAPI(user.psid, {
             message: {
-                text: getRandomGreeting(),
+                text: getRandomGreeting() + "\nHere are some suggestions to start:",
                 quick_replies: helperReplies(),
             },
         });
@@ -144,6 +144,14 @@ async function handleSentiments(user, receivedMessage, db) {
         return true;
     }
 
+    const sentiment = firstTrait(receivedMessage.nlp, "wit$sentiment");
+    if (sentiment && sentiment.value === 'negative' && sentiment.confidence > 0.6) {
+        await callSendAPI(user.psid, {
+            message: { text: "Your sentiment was: " + sentiment.value },
+        });
+        return true;
+    }
+
     const bye = firstTrait(receivedMessage.nlp, "wit$bye");
     if (bye && bye.confidence > 0.8) {
         await callSendAPI(user.psid, {
@@ -152,11 +160,11 @@ async function handleSentiments(user, receivedMessage, db) {
         return true;
     }
 
-    if(receivedMessage.nlp.entities) {
-        for(const [key, entity] of Object.entries(receivedMessage.nlp.entities)) {
-            console.log(key, entity);
-        }
-    }
+    // if(receivedMessage.nlp.entities) {
+    //     for(const [key, entity] of Object.entries(receivedMessage.nlp.entities)) {
+    //         console.log(key, entity);
+    //     }
+    // }
 
     const dietaryAction = guessDietaryAction(receivedMessage.text);
     if(dietaryAction !== null) {
@@ -244,6 +252,32 @@ async function defaultReply(user) {
     });
 }
 
+export async function menuReply(db, request, user, tag, concatReplies) {
+    console.log("Understood request: " + request.date.toISO() + " meal: " + request.meal);
+
+    const meals = await Meal.lookup(db, request);
+    let replies = composeMealsReply(user, meals);
+    console.log(replies);
+    if(concatReplies === true) {
+        replies = [replies.join("\n")];
+    }
+    console.log(replies, concatReplies);
+
+    for(let i = 0; i < replies.length; i++) {
+        let response = { message: { text: replies[i] } };
+        if(i === replies.length - 1) {
+            response.message.quick_replies = quickRepliesAfterAnswering(user, request);
+        }
+        if(tag) {
+            response.tag = tag;
+            response.messaging_type = "MESSAGE_TAG";
+        }
+        await callSendAPI(user.psid, response);
+        process.stdout.write(".");
+    }
+    process.stdout.write("\n");
+}
+
 // Handles messages events
 export async function handleMessage(senderPsid, receivedMessage) {
     // this may make the whole process slower, but looks better...
@@ -281,18 +315,7 @@ export async function handleMessage(senderPsid, receivedMessage) {
             return;
         }
 
-        console.log("Understood request: " + inferred.date.toISO() + " meal: " + inferred.meal);
-
-        const meals = await Meal.lookup(db, inferred);
-        const replies = composeMealsReply(user, meals);
-
-        for(let i = 0; i < replies.length; i++) {
-            let response = { message: { text: replies[i] } };
-            if(i === replies.length - 1) {
-                response.message.quick_replies = quickRepliesAfterAnswering(user, inferred);
-            }
-            await callSendAPI(senderPsid, response);
-        }
+        await menuReply(db, inferred, user);
         return;
     }
     await defaultReply(user);
