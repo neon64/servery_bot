@@ -52,14 +52,16 @@ yargs(hideBin(process.argv))
         },
         async (argv) => {
             let menu = await getMenu(argv.headless);
-            console.log(menu);
             let db = await openDb();
+            let updated = 0;
             for (const [date, contents] of menu) {
                 for (const [meal, dishes] of Object.entries(contents)) {
                     const m = new Meal(date, meal, dishes);
                     await m.upsert(db);
+                    updated += 1;
                 }
             }
+            console.log('Upserted ' + updated + ' rows');
         }
     )
     .help().argv;

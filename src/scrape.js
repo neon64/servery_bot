@@ -1,6 +1,7 @@
 import puppeteer from "puppeteer";
 import cheerio from "cheerio";
 import { meals, identifyDish } from "./food.js";
+import { DateTime } from "luxon";
 
 // goes through the whole OneLogin authentication process in order to scrape the
 let getMenuHtml = async (headless) => {
@@ -55,7 +56,7 @@ function menuHtmlToStructuredData(html) {
             if (isValidDate(date)) {
                 // valid date
                 console.log("Parsing", date);
-                currentDate = date;
+                currentDate = DateTime.fromJSDate(date);
                 menu.set(currentDate, {});
                 currentMeal = null;
                 continue;

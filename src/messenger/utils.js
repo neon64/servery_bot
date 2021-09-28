@@ -53,18 +53,20 @@ export const handleWebhook = (onMessage, onPostback) => {
             for (let entry of body.entry) {
                 // Gets the body of the webhook event
                 let webhookEvent = entry.messaging[0];
-                console.log(webhookEvent);
+                // console.log(webhookEvent);
 
                 // Get the sender PSID
                 let senderPsid = webhookEvent.sender.id;
-                console.log("Sender PSID: " + senderPsid);
+                // console.log("Sender PSID: " + senderPsid);
 
                 // Check if the event is a message or postback and
                 // pass the event to the appropriate handler function
                 if (webhookEvent.message) {
                     await onMessage(senderPsid, webhookEvent.message);
+                    console.log('Handled message successfully');
                 } else if (webhookEvent.postback) {
-                    onPostback(senderPsid, webhookEvent.postback);
+                    await onPostback(senderPsid, webhookEvent.postback);
+                    console.log('Handled postback successfully');
                 }
             }
 

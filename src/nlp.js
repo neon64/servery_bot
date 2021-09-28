@@ -2,9 +2,10 @@
 
 import { meals, mealsExpired } from "./food.js";
 import { Interval, DateTime } from "luxon";
+import { User } from "./database.js";
 
-export function findMatchingMeal(receivedMessage) {
-    const lower = receivedMessage.text.toLowerCase();
+export function findMatchingMeal(text) {
+    const lower = text.toLowerCase();
     for (const [search, replace] of Object.entries(meals)) {
         if (lower.includes(search)) {
             return replace;
@@ -14,18 +15,41 @@ export function findMatchingMeal(receivedMessage) {
     return null;
 }
 
-const nowInServeryTimezone = () => {
+export function guessDietaryAction(text) {
+    const lower = text.toLowerCase();
+    if(!lower.includes("vegetarian") && !lower.includes("vego")) {
+        return null;
+    }
+
+    if(lower.includes("hide") || lower.includes("skip") || lower.includes("no")) {
+        return { dietary_preference: User.HIDE_VEGO };
+    }
+    return { dietary_preference: User.SHOW_ALL };
+}
+
+export function guessAskingForAReminder(text) {
+    const lower = text.toLowerCase();
+    if(lower.includes("remind") || lower.includes("notify") || lower.includes("tell") || lower.includes("prompt") || lower.includes("subscribe")) {
+        return true;
+    }
+    return false;
+}
+
+export function guessCancellingReminder(text) {
+    const lower = text.toLowerCase();
+    if(lower.includes("unsubscribe") || lower.includes("cancel") || lower.includes("stop") || lower.includes("do not") || lower.includes("don't")) {
+        return true;
+    }
+    return false;
+}
+
+export const nowInServeryTimezone = () => {
     return DateTime.now().setZone(process.env.SERVERY_TIMEZONE);
 };
 
 export const getNextMealDay = (meal) => {
     const now = nowInServeryTimezone();
-    const todayStart = now.set({
-        hour: 0,
-        minute: 0,
-        second: 0,
-        millisecond: 0,
-    });
+    const todayStart = now.startOf('day');
     const mealExpiryTime = mealsExpired[meal];
     const todayMealExpiry = todayStart.plus(mealExpiryTime);
     if (now > todayMealExpiry) {
@@ -37,17 +61,8 @@ export const getNextMealDay = (meal) => {
 
 export const humanFormatDay = (day, meal) => {
     const today = nowInServeryTimezone();
-    const todayStart = today.set({
-        hour: 0,
-        minute: 0,
-        second: 0,
-        millisecond: 0,
-    });
-    const dayStart = day.set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
-    const duration = Interval.fromDateTimes(todayStart, dayStart).toDuration();
+    const duration = Interval.fromDateTimes(today.startOf('day'), day.startOf('day')).toDuration();
     const days = duration.as("days");
-    console.log(days);
-    console.log(todayStart.toString(), dayStart.toString());
     if (days == 0) {
         return (meal ? meal + " " : "") + "today";
     } else if (days == 1) {
@@ -59,9 +74,30 @@ export const humanFormatDay = (day, meal) => {
     }
 };
 
-export function inferMeals(receivedMessage) {
+export class MealRequest {
+    constructor(date, meal) {
+        this.date = date;
+        this.meal = meal;
+    }
+
+    serialize() {
+        return {
+            date: this.date.toISO(),
+            meal: this.meal
+        }
+    }
+
+    static unserialize(object) {
+        return new MealRequest(DateTime.fromISO(object.date, { zone: process.env.SERVERY_TIMEZONE }), object.meal);
+    }
+}
+
+export function formatDurationAsTime(duration) {
+    return nowInServeryTimezone().startOf('day').plus(duration).toFormat('h:mm a');
+}
+
+export function getBestDateTime(receivedMessage) {
     const datetimes = receivedMessage.nlp.entities["wit$datetime:datetime"];
-    const mealFilter = findMatchingMeal(receivedMessage);
     if (datetimes && datetimes.length > 0) {
         for (let dateReference of datetimes) {
             if (dateReference.confidence < 0.5) {
@@ -77,23 +113,23 @@ export function inferMeals(receivedMessage) {
                 });
             } else if (dateReference.type === "interval") {
                 date = DateTime.fromISO(dateReference.from.value, {
-                    zone: process.env.SERVERY_TIMEZON,
+                    zone: process.env.SERVERY_TIMEZONE,
                 });
             }
 
-            console.log(date);
-            console.log(dateReference);
-
-            return {
-                date: date,
-                meal: mealFilter,
-            };
+            return date;
         }
+    }
+    return null;
+}
+
+export function inferMeals(receivedMessage) {
+    const mealFilter = findMatchingMeal(receivedMessage.text);
+    const dateTime = getBestDateTime(receivedMessage);
+    if(dateTime !== null) {
+        return new MealRequest(dateTime, mealFilter);
     } else if (mealFilter !== null) {
-        return {
-            date: getNextMealDay(mealFilter),
-            meal: mealFilter,
-        };
+        return new MealRequest(getNextMealDay(mealFilter), mealFilter);
     }
 
     return null;

@@ -1,4 +1,4 @@
-import express, { response } from "express";
+import express from "express";
 import pkg from "body-parser";
 const { urlencoded, json } = pkg;
 import { openDb } from "./database.js";
@@ -20,6 +20,11 @@ export async function runServer() {
     // Respond with 'Hello World' when a GET request is made to the homepage
     app.get("/", async (_req, res) => {
         const response = '<body><h1>The Servery</h1><a href="/api/menu">/api/menu - dump all items in the menu</a></body>';
+        res.send(response);
+    });
+
+    app.get("/privacy-policy", async (_req, res) => {
+        const response = '<body><h1>The Servery - Privacy Policy</h1><p>We collect your Facebook PSID, and (voluntarily) your dietary preferences</p></body>';
         res.send(response);
     });
 

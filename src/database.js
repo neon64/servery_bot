@@ -36,18 +36,18 @@ export class Meal {
     }
 
     static async lookup(db, query) {
-        const isoDate = query.date.toISODate();
-        console.log(isoDate);
+        const sqlDate = query.date.toSQLDate();
+        console.log('Looking for meals on ' + sqlDate + ' in DB');
         let results;
         if (!query.meal) {
             results = await db.all("select * from menu where menu_date = :date", {
-                ":date": isoDate,
+                ":date": sqlDate,
             });
         } else {
             results = await db.all(
                 "select * from menu where menu_date = :date and menu_meal = :meal",
                 {
-                    ":date": isoDate,
+                    ":date": sqlDate,
                     ":meal": query.meal,
                 }
             );
@@ -62,7 +62,7 @@ export class Meal {
         await db.run(
             "INSERT OR REPLACE INTO menu (menu_date, menu_meal, menu_contents) VALUES (:day, :meal, json(:contents))",
             {
-                ":day": DateTime.fromJSDate(this.date).toSQLDate(),
+                ":day": this.date.toSQLDate(),
                 ":meal": this.mealType,
                 ":contents": JSON.stringify({ dishes: this.dishes }),
             }
@@ -77,6 +77,10 @@ export class User {
         this.subscription = subscription;
         this.subscription_time = subscription_time;
         this.dietary_preference = dietary_preference;
+        if(this.dietary_preference === null) {
+            this.dietary_preference = User.HIDE_VEGO;
+        }
+        this.payload = {};
     }
 
     static get NOT_SUBSCRIBED() {
@@ -90,7 +94,7 @@ export class User {
     }
 
     static get SHOW_ALL() {
-        return null;
+        return 0;
     }
 
     static get HIDE_VEGO() {
@@ -98,7 +102,19 @@ export class User {
     }
 
     shouldShowVego() {
+        if(typeof this.payload.once_off_dietary_override !== 'undefined') {
+            return this.payload.once_off_dietary_override !== User.HIDE_VEGO;
+        }
         return this.dietary_preference !== User.HIDE_VEGO;
+    }
+
+    setPayload(payload) {
+        console.log('Setting message payload', payload);
+        this.payload = payload;
+    }
+
+    needsSubscriptionTime() {
+        return this.subscription !== User.NOT_SUBSCRIBED && this.subscription_time === null;
     }
 
     async setSubscription(db, subscription, subscription_time) {
@@ -109,7 +125,7 @@ export class User {
             {
                 ":psid": this.psid,
                 ":subscriptionType": this.subscription,
-                ":subscriptionTime": this.subscription_time
+                ":subscriptionTime": this.subscription_time === null ? null : this.subscription_time.toISOTime()
             }
         );
     }
