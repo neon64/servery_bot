@@ -17,7 +17,7 @@ export async function processUserSubscription(db, now, user) {
     let minutesAwayFromIdeal = Interval.fromDateTimes(now > idealMessageTime ? idealMessageTime : now, now > idealMessageTime ? now : idealMessageTime)
         .toDuration().as('minutes');
     console.log(user.psid + ": " + minutesAwayFromIdeal + " away from ideal message time");
-    if(minutesAwayFromIdeal > MAX_MINS_AWAY_FROM_IDEAL) {
+    if(now < idealMessageTime || minutesAwayFromIdeal > MAX_MINS_AWAY_FROM_IDEAL) {
         console.log(user.psid + ": skipping");
         return;
     }
