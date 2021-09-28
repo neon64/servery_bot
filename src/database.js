@@ -75,7 +75,7 @@ export class User {
     constructor(psid, subscription, subscription_time, dietary_preference, last_contacted) {
         this.psid = psid;
         this.subscription = subscription;
-        this.subscription_time = Duration.fromISOTime(subscription_time);
+        this.subscription_time = subscription_time === null ? null : Duration.fromISOTime(subscription_time);
         this.dietary_preference = dietary_preference;
         this.last_contacted = last_contacted === null ? null : DateTime.fromISO(last_contacted, { zone: process.env.SERVERY_TIMEZONE });
         if(this.dietary_preference === null) {
@@ -141,7 +141,7 @@ export class User {
                 ":psid": this.psid,
                 ":subscriptionType": this.subscription,
                 ":subscriptionTime": this.subscription_time === null ? null : this.subscription_time.toISOTime(),
-                ":last_contacted": this.last_contacted.toISO(),
+                ":last_contacted": this.last_contacted === null ? null : this.last_contacted.toISO(),
                 ":dietary": this.dietary_preference
             }
         );
@@ -150,7 +150,7 @@ export class User {
     static async getByPsid(db, psid) {
         let row = await db.get("select * from messenger_users where user_psid = :psid", { ':psid': psid });
         if(!row) {
-            return new User(psid, null, null, null);
+            return new User(psid, null, null, null, null);
         }
         return new User(row.user_psid, row.user_subscription, row.user_subscription_time, row.user_dietary_prefs, row.user_last_contacted);
     }

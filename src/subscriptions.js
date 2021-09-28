@@ -28,12 +28,10 @@ export async function processUserSubscription(db, now, user) {
         return;
     }
 
-    console.log(user);
-
     await user.setLastContacted(db, nowInServeryTimezone());
-    console.log('Updated last contacted');
+    console.log(user.psid + ": last_contacted updated");
     await menuReply(db, new MealRequest(now, null), user, "CONFIRMED_EVENT_UPDATE", true);
-    console.log('Sent menu');
+    console.log(user.psid + ': sent menu');
 }
 
 export function processSubscriptions(db, users) {

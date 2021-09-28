@@ -1,4 +1,4 @@
-# Quick Start Tutorial - Finished Project
+# "The Servery" Messenger Bot
 
 This is the final code for the [Messenger Platform quick start tutorial](https://developers.facebook.com/docs/messenger-platform/getting-started/quick-start).
 

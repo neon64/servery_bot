@@ -62,11 +62,9 @@ export const handleWebhook = (onMessage, onPostback) => {
                 // Check if the event is a message or postback and
                 // pass the event to the appropriate handler function
                 if (webhookEvent.message) {
-                    await onMessage(senderPsid, webhookEvent.message);
-                    console.log('Handled message successfully');
+                    onMessage(senderPsid, webhookEvent.message);
                 } else if (webhookEvent.postback) {
-                    await onPostback(senderPsid, webhookEvent.postback);
-                    console.log('Handled postback successfully');
+                    onPostback(senderPsid, webhookEvent.postback);
                 }
             }
 

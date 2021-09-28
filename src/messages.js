@@ -201,7 +201,7 @@ async function handleSentiments(user, receivedMessage, db) {
         if(user.subscription !== User.NOT_SUBSCRIBED) {
             await callSendAPI(user.psid, {
                 message: {
-                    text: "Looks like you're already subscribed to the menu.",
+                    text: "Looks like you're already subscribed to receive the menu at " + formatDurationAsTime(user.subscription_time) + " each morning.",
                     quick_replies: [
                         {
                             content_type: "text",
@@ -235,7 +235,7 @@ async function handleSentiments(user, receivedMessage, db) {
         } else {
             let startOfDay = dateTime.startOf('day');
             let time = Interval.fromDateTimes(startOfDay, dateTime).toDuration();
-            subscribeUser(db, user, time);
+            await subscribeUser(db, user, time);
         }
         return true;
     }
@@ -257,12 +257,11 @@ export async function menuReply(db, request, user, tag, concatReplies) {
 
     const meals = await Meal.lookup(db, request);
     let replies = composeMealsReply(user, meals);
-    console.log(replies);
     if(concatReplies === true) {
         replies = [replies.join("\n")];
     }
-    console.log(replies, concatReplies);
 
+    console.log('Sending', replies);
     for(let i = 0; i < replies.length; i++) {
         let response = { message: { text: replies[i] } };
         if(i === replies.length - 1) {
@@ -273,9 +272,7 @@ export async function menuReply(db, request, user, tag, concatReplies) {
             response.messaging_type = "MESSAGE_TAG";
         }
         await callSendAPI(user.psid, response);
-        process.stdout.write(".");
     }
-    process.stdout.write("\n");
 }
 
 // Handles messages events
@@ -287,12 +284,14 @@ export async function handleMessage(senderPsid, receivedMessage) {
     const db = await openDb();
     const user = await User.getByPsid(db, senderPsid);
 
+    console.log(user.psid + ": " + receivedMessage.text);
+
     try {
-        if(receivedMessage.quick_reply.payload) {
+        if(receivedMessage.quick_reply && receivedMessage.quick_reply.payload) {
             user.setPayload(JSON.parse(receivedMessage.quick_reply.payload));
         }
     } catch(e) {
-        console.warn('Failed to parse message payload ', receivedMessage.payload);
+        console.warn('Failed to parse message payload ', receivedMessage.quick_reply.payload);
     }
 
     // Checks if the message contains text

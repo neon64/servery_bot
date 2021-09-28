@@ -19,6 +19,7 @@
         "express-basic-auth": "^1.2.0",
         "got": "^11.8.2",
         "luxon": "^2.0.2",
+        "npmlog": "^5.0.1",
         "puppeteer": "^10.2.0",
         "puppeteer-core": "^10.2.0",
         "request": "^2.88.0",

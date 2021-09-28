@@ -29,7 +29,7 @@ export function guessDietaryAction(text) {
 
 export function guessAskingForAReminder(text) {
     const lower = text.toLowerCase();
-    if(lower.includes("remind") || lower.includes("notify") || lower.includes("tell") || lower.includes("prompt") || lower.includes("subscribe")) {
+    if(lower.includes("remind") || lower.includes("send") || lower.includes("notify") || lower.includes("tell") || lower.includes("prompt") || lower.includes("subscribe")) {
         return true;
     }
     return false;
