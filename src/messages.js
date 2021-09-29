@@ -134,7 +134,7 @@ function composeMealsReply(user, meals) {
     if (meals.length === 0) {
         return {
             messages: prelude.concat([
-                "Sorry, my search returned 0 results. Note that the Servery only publishes its menu week-by-week. Perhaps you've asked too far into the future? ",
+                "Sorry, my search returned 0 results.\nNote: the Servery only publishes its menu week-by-week.\nPerhaps you've asked too far into the future? ",
             ]),
             empty: true,
         };
@@ -353,7 +353,7 @@ export async function menuReply(
                 user,
                 request,
                 showUnsubscribe,
-                data.empty
+                response.empty
             );
         }
         await reply(data);
