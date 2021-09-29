@@ -6,6 +6,7 @@ import { openDb } from "./database.js";
 import { handleMessage, handlePostback } from "./messages.js";
 import { handleWebhook, handleWebhookVerify } from "./messenger/utils.js";
 import expressBasicAuth from "express-basic-auth";
+import log from 'npmlog';
 
 const HOSTNAME = "localhost";
 
@@ -59,7 +60,7 @@ export async function runServer() {
 
     // listen for requests :)
     let listener = await app.listen(process.env.PORT, HOSTNAME, function () {
-        console.log(
+        log.info('serve',
             "Your app is listening on http://" +
                 HOSTNAME +
                 ":" +

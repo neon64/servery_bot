@@ -1,23 +1,39 @@
 import got from "got";
+import log from 'npmlog';
 
 // Sends response messages via the Send API
-export function callSendAPI(senderPsid, response) {
-    // The page access token we have generated in your app settings
-    const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+export function setupSendAPI(senderPsid, pageId, tag) {
+    return async (response) => {
+        // The page access token we have generated in your app settings
+        let PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+        if(pageId === process.env.TEST_PAGE_ID) {
+            PAGE_ACCESS_TOKEN = process.env.TEST_PAGE_ACCESS_TOKEN;
+        }
 
-    // Construct the message body
-    let requestBody = {
-        recipient: {
-            id: senderPsid,
-        },
-        ...response,
-    };
+        // Construct the message body
+        let requestBody = {
+            recipient: {
+                id: senderPsid,
+            },
+            ...response,
+        };
 
-    // Send the HTTP request to the Messenger Platform
-    return got.post("https://graph.facebook.com/v2.6/me/messages", {
-        searchParams: { access_token: PAGE_ACCESS_TOKEN },
-        json: requestBody,
-    });
+        if(tag) {
+            requestBody.tag = tag;
+            requestBody.messaging_type = "MESSAGE_TAG";
+        }
+
+        // Send the HTTP request to the Messenger Platform
+        try {
+            log.verbose('send', 'request: %j', requestBody);
+            await got.post("https://graph.facebook.com/v12.0/me/messages", {
+                searchParams: { access_token: PAGE_ACCESS_TOKEN },
+                json: requestBody,
+            });
+        } catch(e) {
+            log.error('send', 'response: %j', e.response.body);
+        }
+    }
 }
 
 export const handleWebhookVerify = async (req, res) => {
@@ -53,23 +69,27 @@ export const handleWebhook = (onMessage, onPostback) => {
             for (let entry of body.entry) {
                 // Gets the body of the webhook event
                 let webhookEvent = entry.messaging[0];
-                // console.log(webhookEvent);
+
+                let pageId = entry.id;
+                log.info('messenger', 'Received event for page: %s', pageId);
 
                 // Get the sender PSID
                 let senderPsid = webhookEvent.sender.id;
-                // console.log("Sender PSID: " + senderPsid);
+
+                let reply = setupSendAPI(senderPsid, pageId);
 
                 // Check if the event is a message or postback and
                 // pass the event to the appropriate handler function
                 if (webhookEvent.message) {
-                    onMessage(senderPsid, webhookEvent.message);
+                    onMessage(senderPsid, webhookEvent.message, reply);
                 } else if (webhookEvent.postback) {
-                    onPostback(senderPsid, webhookEvent.postback);
+                    onPostback(senderPsid, webhookEvent.postback, reply);
                 }
             }
 
             // Returns a '200 OK' response to all requests
             res.status(200).send("EVENT_RECEIVED");
+            log.verbose('send', '200 OK');
         } else {
             // Returns a '404 Not Found' if event is not from a page subscription
             res.sendStatus(404);

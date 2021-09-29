@@ -3,6 +3,7 @@
 import { meals, mealsExpired } from "./food.js";
 import { Interval, DateTime } from "luxon";
 import { User } from "./database.js";
+import log from 'npmlog';
 
 export function findMatchingMeal(text) {
     const lower = text.toLowerCase();
@@ -97,12 +98,16 @@ export function formatDurationAsTime(duration) {
 }
 
 export function getBestDateTime(receivedMessage) {
+    if(!receivedMessage.nlp || !receivedMessage.nlp.entities) {
+        log.warn('nlp', 'missing nlp... is nlp enabled for this page?');
+        return null;
+    }
     const datetimes = receivedMessage.nlp.entities["wit$datetime:datetime"];
     if (datetimes && datetimes.length > 0) {
         for (let dateReference of datetimes) {
             if (dateReference.confidence < 0.5) {
-                console.warn("Skipping", dateReference);
-                console.warn("Original message:", receivedMessage.text);
+                log.warn('nlp', "Skipping " + dateReference);
+                log.warn('nlp', "Original message: " + receivedMessage.text);
                 continue;
             }
 

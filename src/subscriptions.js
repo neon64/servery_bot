@@ -1,6 +1,7 @@
 import { Interval } from "luxon";
 import { User } from "./database.js";
 import { menuReply } from "./messages.js";
+import { setupSendAPI } from "./messenger/utils.js";
 import { MealRequest, nowInServeryTimezone } from "./nlp.js";
 
 const MAX_MINS_AWAY_FROM_IDEAL = 10;
@@ -28,9 +29,11 @@ export async function processUserSubscription(db, now, user) {
         return;
     }
 
+    let reply = setupSendAPI(user.psid, null, "CONFIRMED_EVENT_UPDATE");
+
     await user.setLastContacted(db, nowInServeryTimezone());
     console.log(user.psid + ": last_contacted updated");
-    await menuReply(db, new MealRequest(now, null), user, "CONFIRMED_EVENT_UPDATE", true);
+    await menuReply(db, new MealRequest(now, null), user, reply, true, true);
     console.log(user.psid + ': sent menu');
 }
 
