@@ -346,15 +346,17 @@ export async function menuReply(
     }
 
     console.log("Sending", response.messages);
+    const quickReplies = quickRepliesAfterAnswering(
+        user,
+        request,
+        showUnsubscribe,
+        response.empty
+    );
+
     for (let i = 0; i < response.messages.length; i++) {
         let data = { message: { text: response.messages[i] } };
-        if (i === response.messages.length - 1) {
-            data.message.quick_replies = quickRepliesAfterAnswering(
-                user,
-                request,
-                showUnsubscribe,
-                response.empty
-            );
+        if (i === response.messages.length - 1 && quickReplies.length > 0) {
+            data.message.quick_replies = quickReplies;
         }
         await reply(data);
     }
