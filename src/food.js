@@ -52,10 +52,12 @@ export const identifyDish = (dish) => {
         const description = dish.replace("(V)", "").trim();
         return { role: VEGO, description };
     } else if (
-        dish.toLowerCase().includes("assorted") && dish.toLowerCase().includes("cereals") ||
+        (dish.toLowerCase().includes("assorted") &&
+            dish.toLowerCase().includes("cereals")) ||
         dish.toLowerCase().startsWith("seasonal vegetables") ||
         dish.toLowerCase().includes("chefs selection") ||
-        (dish.toLowerCase().includes("chefs") && dish.toLowerCase().includes("of the day")) ||
+        (dish.toLowerCase().includes("chefs") &&
+            dish.toLowerCase().includes("of the day")) ||
         dish.toLowerCase() === "boiled eggs, baked beans"
     ) {
         return { role: STAPLE, description: dish };
@@ -63,4 +65,3 @@ export const identifyDish = (dish) => {
         return { role: MAIN, description: dish };
     }
 };
-

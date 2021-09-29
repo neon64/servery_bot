@@ -6,7 +6,7 @@ import { openDb } from "./database.js";
 import { handleMessage, handlePostback } from "./messages.js";
 import { handleWebhook, handleWebhookVerify } from "./messenger/utils.js";
 import expressBasicAuth from "express-basic-auth";
-import log from 'npmlog';
+import log from "npmlog";
 
 const HOSTNAME = "localhost";
 
@@ -21,12 +21,14 @@ export async function runServer() {
 
     // Respond with 'Hello World' when a GET request is made to the homepage
     app.get("/", async (_req, res) => {
-        const response = '<body><h1>The Servery</h1><p><a href="/api/menu">/api/menu - dump all items in the menu</a></p><p><a href="/api/users">/api/users - show all user subscriptions</a></p></body>';
+        const response =
+            '<body><h1>The Servery</h1><p><a href="/api/menu">/api/menu - dump all items in the menu</a></p><p><a href="/api/users">/api/users - show all user subscriptions</a></p></body>';
         res.send(response);
     });
 
     app.get("/privacy-policy", async (_req, res) => {
-        const response = '<body><h1>The Servery - Privacy Policy</h1><p>We collect your Facebook PSID, and (voluntarily) your dietary preferences</p></body>';
+        const response =
+            "<body><h1>The Servery - Privacy Policy</h1><p>We collect your Facebook PSID, and (voluntarily) your dietary preferences</p></body>";
         res.send(response);
     });
 
@@ -38,7 +40,7 @@ export async function runServer() {
         const items = result.map((item) => {
             item.menu_contents = JSON.parse(item.menu_contents);
             return item;
-        })
+        });
         res.json(items);
     });
 
@@ -48,9 +50,17 @@ export async function runServer() {
         res.json(result);
     });
 
-    let credentials = {}
+    let credentials = {};
     credentials[process.env.HTTP_BASIC_USER] = process.env.HTTP_BASIC_PASSWORD;
-    app.use('/api', expressBasicAuth({ users: credentials, challenge: true, realm: 'servery_bot' }), router);
+    app.use(
+        "/api",
+        expressBasicAuth({
+            users: credentials,
+            challenge: true,
+            realm: "servery_bot",
+        }),
+        router
+    );
 
     // Adds support for GET requests to our webhook
     app.get("/webhook", handleWebhookVerify);
@@ -60,7 +70,8 @@ export async function runServer() {
 
     // listen for requests :)
     let listener = await app.listen(process.env.PORT, HOSTNAME, function () {
-        log.info('serve',
+        log.info(
+            "serve",
             "Your app is listening on http://" +
                 HOSTNAME +
                 ":" +

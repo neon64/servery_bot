@@ -1,9 +1,19 @@
-import { inferMeals, humanFormatDay, guessDietaryAction, getNextMealDay, MealRequest, guessAskingForAReminder, guessCancellingReminder, nowInServeryTimezone, formatDurationAsTime, getBestDateTime } from "./nlp.js";
+import {
+    inferMeals,
+    humanFormatDay,
+    guessDietaryAction,
+    getNextMealDay,
+    MealRequest,
+    guessAskingForAReminder,
+    guessCancellingReminder,
+    nowInServeryTimezone,
+    formatDurationAsTime,
+    getBestDateTime,
+} from "./nlp.js";
 import { Meal, openDb, User } from "./database.js";
 import { mealsDisplay } from "./food.js";
 import { Duration, Interval } from "luxon";
-import log from 'npmlog';
-import { response } from "express";
+import log from "npmlog";
 
 const greetings = ["Howdy!", "Hey!", "Hi!", "Hello!"];
 
@@ -11,49 +21,65 @@ const helperReplies = () => {
     return [
         {
             content_type: "text",
-            title: humanFormatDay(getNextMealDay('dinner')) + "'s menu",
-            payload: '{}',
+            title: humanFormatDay(getNextMealDay("dinner")) + "'s menu",
+            payload: "{}",
         },
         {
             content_type: "text",
-            title: humanFormatDay(getNextMealDay('dinner').plus({ days: 1 })),
-            payload: '{}',
+            title: humanFormatDay(getNextMealDay("dinner").plus({ days: 1 })),
+            payload: "{}",
         },
         {
             content_type: "text",
             title: "send every morning",
-            payload: '{}',
+            payload: "{}",
         },
     ];
 };
 
-const quickRepliesAfterAnswering = (user, mealRequest, showUnsubscribe, empty) => {
-    if(empty) {
+const quickRepliesAfterAnswering = (
+    user,
+    mealRequest,
+    showUnsubscribe,
+    empty
+) => {
+    if (empty) {
         return [];
     }
 
     let replies = [];
-    if(typeof user.payload.once_off_dietary_override === 'undefined') {
+    if (typeof user.payload.once_off_dietary_override === "undefined") {
         replies.push({
             content_type: "text",
-            title: user.shouldShowVego() ? 'Always hide vego' : 'Show vego options',
-            payload: JSON.stringify(user.shouldShowVego() ? {} : { once_off_dietary_override: User.SHOW_ALL, original_request: mealRequest.serialize() }),
+            title: user.shouldShowVego()
+                ? "Always hide vego"
+                : "Show vego options",
+            payload: JSON.stringify(
+                user.shouldShowVego()
+                    ? {}
+                    : {
+                          once_off_dietary_override: User.SHOW_ALL,
+                          original_request: mealRequest.serialize(),
+                      }
+            ),
         });
     } else {
         // we have a dietary override enabled atm,
         // give the user options to make that permanent
         replies.push({
             content_type: "text",
-            title: user.shouldShowVego() ? 'Always show vego' : 'Always hide vego',
+            title: user.shouldShowVego()
+                ? "Always show vego"
+                : "Always hide vego",
             payload: JSON.stringify({}),
         });
     }
 
-    if(showUnsubscribe) {
+    if (showUnsubscribe) {
         replies.push({
             content_type: "text",
             title: "Unsubscribe",
-            payload: JSON.stringify({})
+            payload: JSON.stringify({}),
         });
     }
 
@@ -63,36 +89,40 @@ const quickRepliesAfterAnswering = (user, mealRequest, showUnsubscribe, empty) =
 function getReminderTimeButtons() {
     return [
         {
-            "type": "postback",
-            "title": "7:00am",
-            "payload": JSON.stringify({ remind_at_time: Duration.fromObject({ hours: 7 }).toISOTime() })
+            type: "postback",
+            title: "7:00am",
+            payload: JSON.stringify({
+                remind_at_time: Duration.fromObject({ hours: 7 }).toISOTime(),
+            }),
         },
         {
-            "type": "postback",
-            "title": "8:00am",
-            "payload": JSON.stringify({ remind_at_time: Duration.fromObject({ hours: 8 }).toISOTime() })
+            type: "postback",
+            title: "8:00am",
+            payload: JSON.stringify({
+                remind_at_time: Duration.fromObject({ hours: 8 }).toISOTime(),
+            }),
         },
         {
-            "type": "postback",
-            "title": "custom time",
-            "payload": JSON.stringify({ should_select_reminder_time: true })
+            type: "postback",
+            title: "custom time",
+            payload: JSON.stringify({ should_select_reminder_time: true }),
         },
-    ]
+    ];
 }
 
 function getTentativeReminderButtons() {
     return [
         {
-            "type": "postback",
-            "title": "Enter another time",
-            "payload": JSON.stringify({ should_select_reminder_time: true })
+            type: "postback",
+            title: "Enter another time",
+            payload: JSON.stringify({ should_select_reminder_time: true }),
         },
         {
-            "type": "postback",
-            "title": "Cancel",
-            "payload": JSON.stringify({ cancel_subscription: true })
+            type: "postback",
+            title: "Cancel",
+            payload: JSON.stringify({ cancel_subscription: true }),
         },
-    ]
+    ];
 }
 
 export function getRandomGreeting() {
@@ -104,9 +134,9 @@ function composeMealsReply(user, meals) {
     if (meals.length === 0) {
         return {
             messages: prelude.concat([
-            "Sorry, my search returned 0 results. Perhaps you've  I'll have to get back to you on that one.",
+                "Sorry, my search returned 0 results. Note that the Servery only publishes its menu week-by-week. Perhaps you've asked too far into the future? ",
             ]),
-            empty: true
+            empty: true,
         };
     }
     if (meals.length > 1) {
@@ -115,27 +145,28 @@ function composeMealsReply(user, meals) {
     }
     return {
         messages: prelude.concat(
-            meals
-                .map((meal) => {
-                    const mealDisplay = mealsDisplay[meal.mealType];
-                    let dishes = meal
-                        .getMainDishes()
-                        .map((dish) => dish.description);
-                    let vego = meal.getVegoDishes()
-                        .map((dish) => dish.description);
-                    let response = "";
-                    if (meals.length === 1) {
-                        response += humanFormatDay(meal.date, mealDisplay) + " is " + dishes.join("\n");
-                    } else {
-                        response += mealDisplay + ": " + dishes.join("\n");
-                    }
-                    if(user.shouldShowVego() && vego.length > 0) {
-                        response += "\n" + vego.join("\n") + " (V)";
-                    }
-                    return response;
-                })
+            meals.map((meal) => {
+                const mealDisplay = mealsDisplay[meal.mealType];
+                let dishes = meal
+                    .getMainDishes()
+                    .map((dish) => dish.description);
+                let vego = meal.getVegoDishes().map((dish) => dish.description);
+                let response = "";
+                if (meals.length === 1) {
+                    response +=
+                        humanFormatDay(meal.date, mealDisplay) +
+                        " is " +
+                        dishes.join("\n");
+                } else {
+                    response += mealDisplay + ": " + dishes.join("\n");
+                }
+                if (user.shouldShowVego() && vego.length > 0) {
+                    response += "\n" + vego.join("\n") + " (V)";
+                }
+                return response;
+            })
         ),
-        empty: false
+        empty: false,
     };
 }
 
@@ -148,7 +179,9 @@ async function handleSentiments(user, receivedMessage, db, reply) {
     if (greeting && greeting.confidence > 0.8) {
         await reply({
             message: {
-                text: getRandomGreeting() + "\nHere are some suggestions to start:",
+                text:
+                    getRandomGreeting() +
+                    "\nHere are some suggestions to start:",
                 quick_replies: helperReplies(),
             },
         });
@@ -164,7 +197,11 @@ async function handleSentiments(user, receivedMessage, db, reply) {
     }
 
     const sentiment = firstTrait(receivedMessage.nlp, "wit$sentiment");
-    if (sentiment && sentiment.value === 'negative' && sentiment.confidence > 0.6) {
+    if (
+        sentiment &&
+        sentiment.value === "negative" &&
+        sentiment.confidence > 0.6
+    ) {
         await reply({
             message: { text: "Your sentiment was: " + sentiment.value },
         });
@@ -186,20 +223,26 @@ async function handleSentiments(user, receivedMessage, db, reply) {
     // }
 
     const dietaryAction = guessDietaryAction(receivedMessage.text);
-    if(dietaryAction !== null) {
-        if(typeof user.payload.once_off_dietary_override === 'undefined') {
+    if (dietaryAction !== null) {
+        if (typeof user.payload.once_off_dietary_override === "undefined") {
             await user.setDietaryPrefs(db, dietaryAction.dietary_preference);
             await reply({
-                message: { text: dietaryAction.dietary_preference === User.SHOW_ALL
-                    ? "Great! I'll show you all dietary options from now on."
-                    : "Got it! I'll hide the vego option from now on!" },
+                message: {
+                    text:
+                        dietaryAction.dietary_preference === User.SHOW_ALL
+                            ? "Great! I'll show you all dietary options from now on."
+                            : "Got it! I'll hide the vego option from now on!",
+                },
             });
             return true;
         }
-        log.warn('subscribe', 'Responding to quick reply, not setting permanent dietary settings');
+        log.warn(
+            "subscribe",
+            "Responding to quick reply, not setting permanent dietary settings"
+        );
     }
 
-    if(guessCancellingReminder(receivedMessage.text)) {
+    if (guessCancellingReminder(receivedMessage.text)) {
         await user.setSubscription(db, User.NOT_SUBSCRIBED, null);
         await reply({
             message: {
@@ -208,39 +251,45 @@ async function handleSentiments(user, receivedMessage, db, reply) {
                     {
                         content_type: "text",
                         title: "Subscribe again",
-                        payload: '{}',
+                        payload: "{}",
                     },
-                ]
-            }
+                ],
+            },
         });
         return true;
     }
 
-    if(guessAskingForAReminder(receivedMessage.text) || user.payload.requested_subscription === true) {
-        if(user.subscription !== User.NOT_SUBSCRIBED) {
+    if (
+        guessAskingForAReminder(receivedMessage.text) ||
+        user.payload.requested_subscription === true
+    ) {
+        if (user.subscription !== User.NOT_SUBSCRIBED) {
             await reply({
                 message: {
-                    text: "Looks like you're already subscribed to receive the menu at " + formatDurationAsTime(user.subscription_time) + " each morning.",
+                    text:
+                        "Looks like you're already subscribed to receive the menu at " +
+                        formatDurationAsTime(user.subscription_time) +
+                        " each morning.",
                     quick_replies: [
                         {
                             content_type: "text",
                             title: "Unsubscribe",
-                            payload: '{}',
+                            payload: "{}",
                         },
-                    ]
-                }
+                    ],
+                },
             });
         } else {
             await reply({
                 message: {
                     attachment: {
-                        type: 'template',
+                        type: "template",
                         payload: {
-                            template_type: 'button',
+                            template_type: "button",
                             text: "The Servery can send you a message each morning with the day's menu. When would you like to recieve this message?",
-                            buttons: getReminderTimeButtons()
-                        }
-                    }
+                            buttons: getReminderTimeButtons(),
+                        },
+                    },
                 },
             });
         }
@@ -248,12 +297,19 @@ async function handleSentiments(user, receivedMessage, db, reply) {
     }
 
     const dateTime = getBestDateTime(receivedMessage);
-    if(user.needsSubscriptionTime()) {
-        if(dateTime === null) {
-            await reply({ message: { text: "Sorry, please enter the time you'd like to recieve the menu, e.g.: '6:30am'" } });
+    if (user.needsSubscriptionTime()) {
+        if (dateTime === null) {
+            await reply({
+                message: {
+                    text: "Sorry, please enter the time you'd like to recieve the menu, e.g.: '6:30am'",
+                },
+            });
         } else {
-            let startOfDay = dateTime.startOf('day');
-            let time = Interval.fromDateTimes(startOfDay, dateTime).toDuration();
+            let startOfDay = dateTime.startOf("day");
+            let time = Interval.fromDateTimes(
+                startOfDay,
+                dateTime
+            ).toDuration();
             await subscribeUser(db, user, time, reply);
         }
         return true;
@@ -271,20 +327,34 @@ async function defaultReply(reply) {
     });
 }
 
-export async function menuReply(db, request, user, reply, showUnsubscribe, concatReplies) {
-    console.log("Understood request: " + request.date.toISO() + " meal: " + request.meal);
+export async function menuReply(
+    db,
+    request,
+    user,
+    reply,
+    showUnsubscribe,
+    concatReplies
+) {
+    console.log(
+        "Understood request: " + request.date.toISO() + " meal: " + request.meal
+    );
 
     const meals = await Meal.lookup(db, request);
     let response = composeMealsReply(user, meals);
-    if(concatReplies === true) {
+    if (concatReplies === true) {
         response.messages = [response.messages.join("\n")];
     }
 
-    console.log('Sending', response.messages);
-    for(let i = 0; i < response.messages.length; i++) {
+    console.log("Sending", response.messages);
+    for (let i = 0; i < response.messages.length; i++) {
         let data = { message: { text: response.messages[i] } };
-        if(i === response.messages.length - 1) {
-            data.message.quick_replies = quickRepliesAfterAnswering(user, request, showUnsubscribe, data.empty);
+        if (i === response.messages.length - 1) {
+            data.message.quick_replies = quickRepliesAfterAnswering(
+                user,
+                request,
+                showUnsubscribe,
+                data.empty
+            );
         }
         await reply(data);
     }
@@ -299,26 +369,33 @@ export async function handleMessage(senderPsid, receivedMessage, reply) {
     const db = await openDb();
     const user = await User.getByPsid(db, senderPsid);
 
-    log.info('messages', user.psid + ": " + receivedMessage.text);
+    log.info("messages", user.psid + ": " + receivedMessage.text);
 
     try {
-        if(receivedMessage.quick_reply && receivedMessage.quick_reply.payload) {
+        if (
+            receivedMessage.quick_reply &&
+            receivedMessage.quick_reply.payload
+        ) {
             user.setPayload(JSON.parse(receivedMessage.quick_reply.payload));
         }
-    } catch(e) {
-        log.warn('messages', 'Failed to parse message payload %j', receivedMessage.quick_reply.payload);
+    } catch (e) {
+        log.warn(
+            "messages",
+            "Failed to parse message payload %j",
+            receivedMessage.quick_reply.payload
+        );
     }
 
     // Checks if the message contains text
     if (receivedMessage.text) {
-        if(await handleSentiments(user, receivedMessage, db, reply)) {
+        if (await handleSentiments(user, receivedMessage, db, reply)) {
             // already responded
             return;
         }
 
         let inferred = null;
 
-        if(typeof user.payload.original_request !== 'undefined') {
+        if (typeof user.payload.original_request !== "undefined") {
             inferred = MealRequest.unserialize(user.payload.original_request);
         } else {
             inferred = inferMeals(receivedMessage);
@@ -337,14 +414,17 @@ export async function subscribeUser(db, user, time, reply) {
     await reply({
         message: {
             attachment: {
-                type: 'template',
+                type: "template",
                 payload: {
-                    template_type: 'button',
-                    text: "Got it! We'll send you the menu at " + formatDurationAsTime(time) + " each day. If that doesn't sound right, press one of the buttons below",
-                    buttons: getTentativeReminderButtons()
-                }
-            }
-        }
+                    template_type: "button",
+                    text:
+                        "Got it! We'll send you the menu at " +
+                        formatDurationAsTime(time) +
+                        " each day. If that doesn't sound right, press one of the buttons below",
+                    buttons: getTentativeReminderButtons(),
+                },
+            },
+        },
     });
 }
 
@@ -357,33 +437,42 @@ export async function handlePostback(senderPsid, receivedPostback, reply) {
     let payload = {};
     try {
         payload = JSON.parse(receivedPostback.payload);
-    } catch(e) {
-        log.warn('messages', 'Invalid payload %j', receivedPostback.payload);
+    } catch (e) {
+        log.warn("messages", "Invalid payload %j", receivedPostback.payload);
     }
 
-    console.log('Postback payload', payload);
+    console.log("Postback payload", payload);
 
     // Set the response based on the postback payload
     if (payload.should_select_reminder_time === true) {
         await user.setSubscription(db, User.SUBSCRIBED_DAILY, null);
-        await reply({ message: { text: "What time would you like to recieve the menu each day? Reply with a time, e.g.: 6:30am" }});
+        await reply({
+            message: {
+                text: "What time would you like to recieve the menu each day? Reply with a time, e.g.: 6:30am",
+            },
+        });
     } else if (payload.remind_at_time) {
         let time = Duration.fromISOTime(payload.remind_at_time);
         await subscribeUser(db, user, time, reply);
-    } else if(payload.cancel_subscription === true) {
+    } else if (payload.cancel_subscription === true) {
         await user.setSubscription(db, User.NOT_SUBSCRIBED, null);
-        await reply({message: {
-            text: "Setup cancelled.",
-            quick_replies: [
-                {
-                    content_type: "text",
-                    title: "Try setup again",
-                    payload: JSON.stringify({ requested_subscription: true }),
-                },
-            ]
-        }});
+        await reply({
+            message: {
+                text: "Setup cancelled.",
+                quick_replies: [
+                    {
+                        content_type: "text",
+                        title: "Try setup again",
+                        payload: JSON.stringify({
+                            requested_subscription: true,
+                        }),
+                    },
+                ],
+            },
+        });
     } else {
-        await reply({ message: { text: "Sorry, I didn't understand that response." } });
+        await reply({
+            message: { text: "Sorry, I didn't understand that response." },
+        });
     }
 }
-

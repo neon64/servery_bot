@@ -37,12 +37,15 @@ export class Meal {
 
     static async lookup(db, query) {
         const sqlDate = query.date.toSQLDate();
-        console.log('Looking for meals on ' + sqlDate + ' in DB');
+        console.log("Looking for meals on " + sqlDate + " in DB");
         let results;
         if (!query.meal) {
-            results = await db.all("select * from menu where menu_date = :date", {
-                ":date": sqlDate,
-            });
+            results = await db.all(
+                "select * from menu where menu_date = :date",
+                {
+                    ":date": sqlDate,
+                }
+            );
         } else {
             results = await db.all(
                 "select * from menu where menu_date = :date and menu_meal = :meal",
@@ -70,15 +73,28 @@ export class Meal {
     }
 }
 
-
 export class User {
-    constructor(psid, subscription, subscription_time, dietary_preference, last_contacted) {
+    constructor(
+        psid,
+        subscription,
+        subscription_time,
+        dietary_preference,
+        last_contacted
+    ) {
         this.psid = psid;
         this.subscription = subscription;
-        this.subscription_time = subscription_time === null ? null : Duration.fromISOTime(subscription_time);
+        this.subscription_time =
+            subscription_time === null
+                ? null
+                : Duration.fromISOTime(subscription_time);
         this.dietary_preference = dietary_preference;
-        this.last_contacted = last_contacted === null ? null : DateTime.fromISO(last_contacted, { zone: process.env.SERVERY_TIMEZONE });
-        if(this.dietary_preference === null) {
+        this.last_contacted =
+            last_contacted === null
+                ? null
+                : DateTime.fromISO(last_contacted, {
+                      zone: process.env.SERVERY_TIMEZONE,
+                  });
+        if (this.dietary_preference === null) {
             this.dietary_preference = User.HIDE_VEGO;
         }
         this.payload = {};
@@ -103,19 +119,22 @@ export class User {
     }
 
     shouldShowVego() {
-        if(typeof this.payload.once_off_dietary_override !== 'undefined') {
+        if (typeof this.payload.once_off_dietary_override !== "undefined") {
             return this.payload.once_off_dietary_override !== User.HIDE_VEGO;
         }
         return this.dietary_preference !== User.HIDE_VEGO;
     }
 
     setPayload(payload) {
-        console.log('Setting message payload', payload);
+        console.log("Setting message payload", payload);
         this.payload = payload;
     }
 
     needsSubscriptionTime() {
-        return this.subscription !== User.NOT_SUBSCRIBED && this.subscription_time === null;
+        return (
+            this.subscription !== User.NOT_SUBSCRIBED &&
+            this.subscription_time === null
+        );
     }
 
     async setSubscription(db, subscription, subscription_time) {
@@ -140,23 +159,48 @@ export class User {
             {
                 ":psid": this.psid,
                 ":subscriptionType": this.subscription,
-                ":subscriptionTime": this.subscription_time === null ? null : this.subscription_time.toISOTime(),
-                ":last_contacted": this.last_contacted === null ? null : this.last_contacted.toISO(),
-                ":dietary": this.dietary_preference
+                ":subscriptionTime":
+                    this.subscription_time === null
+                        ? null
+                        : this.subscription_time.toISOTime(),
+                ":last_contacted":
+                    this.last_contacted === null
+                        ? null
+                        : this.last_contacted.toISO(),
+                ":dietary": this.dietary_preference,
             }
         );
     }
 
     static async getByPsid(db, psid) {
-        let row = await db.get("select * from messenger_users where user_psid = :psid", { ':psid': psid });
-        if(!row) {
+        let row = await db.get(
+            "select * from messenger_users where user_psid = :psid",
+            { ":psid": psid }
+        );
+        if (!row) {
             return new User(psid, null, null, null, null);
         }
-        return new User(row.user_psid, row.user_subscription, row.user_subscription_time, row.user_dietary_prefs, row.user_last_contacted);
+        return new User(
+            row.user_psid,
+            row.user_subscription,
+            row.user_subscription_time,
+            row.user_dietary_prefs,
+            row.user_last_contacted
+        );
     }
 
     static async allSubscribedUsers(db) {
-        let rows = await db.all("select * from messenger_users where user_subscription IS NOT NULL");
-        return rows.map(row => { return new User(row.user_psid, row.user_subscription, row.user_subscription_time, row.user_dietary_prefs, row.user_last_contacted) });
+        let rows = await db.all(
+            "select * from messenger_users where user_subscription IS NOT NULL"
+        );
+        return rows.map((row) => {
+            return new User(
+                row.user_psid,
+                row.user_subscription,
+                row.user_subscription_time,
+                row.user_dietary_prefs,
+                row.user_last_contacted
+            );
+        });
     }
 }

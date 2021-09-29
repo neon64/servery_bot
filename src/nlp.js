@@ -3,7 +3,7 @@
 import { meals, mealsExpired } from "./food.js";
 import { Interval, DateTime } from "luxon";
 import { User } from "./database.js";
-import log from 'npmlog';
+import log from "npmlog";
 
 export function findMatchingMeal(text) {
     const lower = text.toLowerCase();
@@ -18,11 +18,15 @@ export function findMatchingMeal(text) {
 
 export function guessDietaryAction(text) {
     const lower = text.toLowerCase();
-    if(!lower.includes("vegetarian") && !lower.includes("vego")) {
+    if (!lower.includes("vegetarian") && !lower.includes("vego")) {
         return null;
     }
 
-    if(lower.includes("hide") || lower.includes("skip") || lower.includes("no")) {
+    if (
+        lower.includes("hide") ||
+        lower.includes("skip") ||
+        lower.includes("no")
+    ) {
         return { dietary_preference: User.HIDE_VEGO };
     }
     return { dietary_preference: User.SHOW_ALL };
@@ -30,7 +34,14 @@ export function guessDietaryAction(text) {
 
 export function guessAskingForAReminder(text) {
     const lower = text.toLowerCase();
-    if(lower.includes("remind") || lower.includes("send") || lower.includes("notify") || lower.includes("tell") || lower.includes("prompt") || lower.includes("subscribe")) {
+    if (
+        lower.includes("remind") ||
+        lower.includes("send") ||
+        lower.includes("notify") ||
+        lower.includes("tell") ||
+        lower.includes("prompt") ||
+        lower.includes("subscribe")
+    ) {
         return true;
     }
     return false;
@@ -38,7 +49,13 @@ export function guessAskingForAReminder(text) {
 
 export function guessCancellingReminder(text) {
     const lower = text.toLowerCase();
-    if(lower.includes("unsubscribe") || lower.includes("cancel") || lower.includes("stop") || lower.includes("do not") || lower.includes("don't")) {
+    if (
+        lower.includes("unsubscribe") ||
+        lower.includes("cancel") ||
+        lower.includes("stop") ||
+        lower.includes("do not") ||
+        lower.includes("don't")
+    ) {
         return true;
     }
     return false;
@@ -50,7 +67,7 @@ export const nowInServeryTimezone = () => {
 
 export const getNextMealDay = (meal) => {
     const now = nowInServeryTimezone();
-    const todayStart = now.startOf('day');
+    const todayStart = now.startOf("day");
     const mealExpiryTime = mealsExpired[meal];
     const todayMealExpiry = todayStart.plus(mealExpiryTime);
     if (now > todayMealExpiry) {
@@ -62,7 +79,10 @@ export const getNextMealDay = (meal) => {
 
 export const humanFormatDay = (day, meal) => {
     const today = nowInServeryTimezone();
-    const duration = Interval.fromDateTimes(today.startOf('day'), day.startOf('day')).toDuration();
+    const duration = Interval.fromDateTimes(
+        today.startOf("day"),
+        day.startOf("day")
+    ).toDuration();
     const days = duration.as("days");
     if (days == 0) {
         return (meal ? meal + " " : "") + "today";
@@ -84,30 +104,38 @@ export class MealRequest {
     serialize() {
         return {
             date: this.date.toISO(),
-            meal: this.meal
-        }
+            meal: this.meal,
+        };
     }
 
     static unserialize(object) {
-        return new MealRequest(DateTime.fromISO(object.date, { zone: process.env.SERVERY_TIMEZONE }), object.meal);
+        return new MealRequest(
+            DateTime.fromISO(object.date, {
+                zone: process.env.SERVERY_TIMEZONE,
+            }),
+            object.meal
+        );
     }
 }
 
 export function formatDurationAsTime(duration) {
-    return nowInServeryTimezone().startOf('day').plus(duration).toFormat('h:mm a');
+    return nowInServeryTimezone()
+        .startOf("day")
+        .plus(duration)
+        .toFormat("h:mm a");
 }
 
 export function getBestDateTime(receivedMessage) {
-    if(!receivedMessage.nlp || !receivedMessage.nlp.entities) {
-        log.warn('nlp', 'missing nlp... is nlp enabled for this page?');
+    if (!receivedMessage.nlp || !receivedMessage.nlp.entities) {
+        log.warn("nlp", "missing nlp... is nlp enabled for this page?");
         return null;
     }
     const datetimes = receivedMessage.nlp.entities["wit$datetime:datetime"];
     if (datetimes && datetimes.length > 0) {
         for (let dateReference of datetimes) {
             if (dateReference.confidence < 0.5) {
-                log.warn('nlp', "Skipping " + dateReference);
-                log.warn('nlp', "Original message: " + receivedMessage.text);
+                log.warn("nlp", "Skipping " + dateReference);
+                log.warn("nlp", "Original message: " + receivedMessage.text);
                 continue;
             }
 
@@ -131,7 +159,7 @@ export function getBestDateTime(receivedMessage) {
 export function inferMeals(receivedMessage) {
     const mealFilter = findMatchingMeal(receivedMessage.text);
     const dateTime = getBestDateTime(receivedMessage);
-    if(dateTime !== null) {
+    if (dateTime !== null) {
         return new MealRequest(dateTime, mealFilter);
     } else if (mealFilter !== null) {
         return new MealRequest(getNextMealDay(mealFilter), mealFilter);

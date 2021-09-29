@@ -62,7 +62,7 @@ yargs(hideBin(process.argv))
                     updated += 1;
                 }
             }
-            console.log('Upserted ' + updated + ' rows');
+            console.log("Upserted " + updated + " rows");
         }
     )
     .command(
