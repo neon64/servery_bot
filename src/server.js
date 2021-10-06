@@ -22,7 +22,13 @@ export async function runServer() {
     // Respond with 'Hello World' when a GET request is made to the homepage
     app.get("/", async (_req, res) => {
         const response =
-            '<body><h1>The Servery</h1><p><a href="/api/menu">/api/menu - dump all items in the menu</a></p><p><a href="/api/users">/api/users - show all user subscriptions</a></p></body>';
+            `<body>
+                <h1>You have stumbled across The Servery</h1>
+                <p>If you are authorized with the secret credentials, you may be able to use the APIs below</p>
+                <p><a href="/api/menu">/api/menu - dump all items in the menu</a></p>
+                <p><a href="/api/users">/api/users - show all user subscriptions</a></p>
+                <p><a href="/api/bookkeeping">/api/bookkeeping - miscellaneous bookkeeping data</a></p>
+            </body>`;
         res.send(response);
     });
 
@@ -42,6 +48,12 @@ export async function runServer() {
             return item;
         });
         res.json(items);
+    });
+
+    router.get("/bookkeeping", async (_req, res) => {
+        const db = await openDb();
+        const result = await db.all("select * from bookkeeping");
+        res.json(result);
     });
 
     router.get("/users", async (_req, res) => {

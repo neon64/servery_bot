@@ -2,29 +2,34 @@ import puppeteer from "puppeteer";
 import cheerio from "cheerio";
 import { meals, identifyDish } from "./food.js";
 import { DateTime } from "luxon";
+import { Meal, openDb } from "./database.js";
+import { nowInServeryTimezone } from "./nlp.js";
+import log from "npmlog";
+
+const SCRAPE_INTERVAL = { hours: 2 };
 
 // goes through the whole OneLogin authentication process in order to scrape the
 let getMenuHtml = async (headless) => {
-    console.log("launching browser instance (headless=" + headless + ")");
+    log.info('scrape', "launching browser instance (headless=" + headless + ")");
     const browser = await puppeteer.launch({ headless: headless });
     const page = await browser.newPage();
     await page.goto(process.env.GRAIL_ENDPOINT, { waitUntil: "networkidle2" });
-    console.log("finished loading login page");
+    log.verbose('scrape', "finished loading login page");
     await page.type("#username", process.env.GRAIL_USERNAME);
     await page.click("button[type=submit]");
     await page.waitForSelector("input#password");
-    console.log("password prompt appears, entering password...");
+    log.verbose('scrape',  "password prompt appears, entering password...");
     await page.type("#password", process.env.GRAIL_PASSWORD);
     await page.click("button[type=submit]");
-    console.log("submitted login page...");
+    log.verbose('scrape', "submitted login page...");
     await page.waitForNavigation({ waitUntil: "domcontentloaded" });
-    console.log("loading food menu...");
+    log.verbose('scrape', "loading food menu...");
     await page.goto(process.env.GRAIL_ENDPOINT + "/food/college-menu/");
     await page.waitForSelector(".entry-content");
     const menuHtml = await page.$eval(".entry-content", (element) => {
         return element.innerHTML;
     });
-    console.log("got menu html");
+    log.info('scrape', "got menu html");
     await browser.close();
     return menuHtml;
 };
@@ -55,7 +60,7 @@ function menuHtmlToStructuredData(html) {
             const date = new Date(part);
             if (isValidDate(date)) {
                 // valid date
-                console.log("Parsing", date);
+                log.verbose('scrape', "Parsing " + date);
                 currentDate = DateTime.fromJSDate(date);
                 menu.set(currentDate, {});
                 currentMeal = null;
@@ -66,12 +71,12 @@ function menuHtmlToStructuredData(html) {
 
             if (Object.keys(meals).includes(lowerText)) {
                 const meal = meals[lowerText];
-                console.log("Detected meal:", meal);
+                log.verbose('scrape', "Detected meal: %j", meal);
                 currentMeal = meal;
                 if (currentDate !== null) {
                     menu.get(currentDate)[currentMeal] = [];
                 } else {
-                    console.warn("No date for meal", meal);
+                    log.warn('scrape', "No date for meal %j", meal);
                 }
                 continue;
             }
@@ -79,7 +84,7 @@ function menuHtmlToStructuredData(html) {
             if ((currentDate !== null, currentMeal !== null)) {
                 menu.get(currentDate)[currentMeal].push(identifyDish(part));
             } else {
-                console.warn("ignoring line", part);
+                log.warn('scrape', "ignoring line %j", part);
             }
         }
     }
@@ -103,5 +108,48 @@ const getMenu = async (headless) => {
     let html = await getMenuHtml(headless);
     return menuHtmlToStructuredData(html);
 };
+
+export async function updateLastScrapedDateTime(db) {
+    await db.run(
+        "INSERT OR REPLACE INTO bookkeeping (field, value) VALUES ('last_scraped', :last_scraped)",
+        {
+            ":last_scraped": nowInServeryTimezone().toISO()
+        }
+    );
+}
+
+export async function scrape(headless) {
+    let menu = await getMenu(headless);
+    let db = await openDb();
+    let updated = 0;
+    for (const [date, contents] of menu) {
+        for (const [meal, dishes] of Object.entries(contents)) {
+            const m = new Meal(date, meal, dishes);
+            await m.upsert(db);
+            updated += 1;
+        }
+    }
+    log.info('scrape', "Upserted " + updated + " rows");
+    updateLastScrapedDateTime(db);
+    log.info('scrape', "Updated last_scraped time");
+}
+
+export async function scrapeIfNeeded(db) {
+    let last_scraped = await db.get("select value from bookkeeping where field = 'last_scraped'");
+    if(last_scraped) {
+        last_scraped = DateTime.fromISO(last_scraped.value, {
+            zone: process.env.SERVERY_TIMEZONE,
+        });
+    }
+    if(!last_scraped) {
+        log.info('scrape', 'Never scraped before - scraping now.');
+        await scrape(true);
+    } else if(last_scraped < nowInServeryTimezone().minus(SCRAPE_INTERVAL)) {
+        log.info('scrape', 'Last scraped %s, scraping again', last_scraped.toLocaleString(DateTime.DATETIME_SHORT));
+        await scrape(true);
+    } else {
+        log.info('scrape', 'Last scraped %s, skipping scrape', last_scraped.toLocaleString(DateTime.DATETIME_SHORT));
+    }
+}
 
 export { getMenu };

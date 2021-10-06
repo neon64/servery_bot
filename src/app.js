@@ -10,14 +10,17 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import log from "npmlog";
+log.enableColor();
+
 // Imports dependencies and set up http server
 
-import { getMenu } from "./scrape.js";
+import { scrape, scrapeIfNeeded } from "./scrape.js";
 import { runServer } from "./server.js";
 
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { Meal, openDb, User } from "./database.js";
+import { openDb, User } from "./database.js";
 import { processSubscriptions } from "./subscriptions.js";
 
 yargs(hideBin(process.argv))
@@ -52,27 +55,17 @@ yargs(hideBin(process.argv))
                 );
         },
         async (argv) => {
-            let menu = await getMenu(argv.headless);
-            let db = await openDb();
-            let updated = 0;
-            for (const [date, contents] of menu) {
-                for (const [meal, dishes] of Object.entries(contents)) {
-                    const m = new Meal(date, meal, dishes);
-                    await m.upsert(db);
-                    updated += 1;
-                }
-            }
-            console.log("Upserted " + updated + " rows");
+            await scrape(argv.headless);
         }
     )
     .command(
         "cron",
         "Send menu to subscribed users on a timer",
         () => {},
-        async (argv) => {
+        async () => {
             const db = await openDb();
+            await scrapeIfNeeded(db);
             const subscribedUsers = await User.allSubscribedUsers(db);
-
             await processSubscriptions(db, subscribedUsers);
         }
     )

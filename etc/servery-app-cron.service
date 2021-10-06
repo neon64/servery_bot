@@ -1,0 +1,19 @@
+[Unit]
+Description=Servery bot - Node.js server
+After=network.target
+Requires=network.target
+
+[Service]
+WorkingDirectory=/home/servery_app/servery_bot
+ExecStart=npm run cron 
+User=servery_app
+PrivateTmp=true
+ProtectSystem=strict
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

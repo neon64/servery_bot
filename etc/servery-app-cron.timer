@@ -1,0 +1,10 @@
+[Unit]
+Description=Run `npm run cron` every 10 minutes, to ensure menus are sent out on time 
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target
+

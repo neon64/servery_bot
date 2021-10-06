@@ -50,7 +50,7 @@ export const handleWebhookVerify = async (req, res) => {
         // Checks the mode and token sent is correct
         if (mode === "subscribe" && token === VERIFY_TOKEN) {
             // Responds with the challenge token from the request
-            console.log("WEBHOOK_VERIFIED");
+            log.info('utils', "WEBHOOK_VERIFIED");
             res.status(200).send(challenge);
         } else {
             // Responds with '403 Forbidden' if verify tokens do not match
@@ -71,7 +71,7 @@ export const handleWebhook = (onMessage, onPostback) => {
                 let webhookEvent = entry.messaging[0];
 
                 let pageId = entry.id;
-                log.info("messenger", "Received event for page: %s", pageId);
+                log.verbose("messenger", "Received event for page: %s", pageId);
 
                 // Get the sender PSID
                 let senderPsid = webhookEvent.sender.id;

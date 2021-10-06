@@ -1,4 +1,5 @@
 import { Interval } from "luxon";
+import log from "npmlog";
 import { User } from "./database.js";
 import { menuReply } from "./messages.js";
 import { setupSendAPI } from "./messenger/utils.js";
@@ -21,7 +22,7 @@ export async function processUserSubscription(db, now, user) {
     )
         .toDuration()
         .as("minutes");
-    console.log(
+    log.info('subscriptions',
         user.psid +
             ": " +
             minutesAwayFromIdeal +
@@ -31,7 +32,6 @@ export async function processUserSubscription(db, now, user) {
         now < idealMessageTime ||
         minutesAwayFromIdeal > MAX_MINS_AWAY_FROM_IDEAL
     ) {
-        console.log(user.psid + ": skipping");
         return;
     }
     let minutesSinceLastMessage =
@@ -40,27 +40,29 @@ export async function processUserSubscription(db, now, user) {
             : Interval.fromDateTimes(user.last_contacted, now)
                   .toDuration()
                   .as("minutes");
-    console.log(
+    log.info('subscriptions',
         user.psid + ": " + minutesSinceLastMessage + " since last message"
     );
     if (
         minutesSinceLastMessage !== null &&
         minutesSinceLastMessage < MIN_MINUTES_SINCE_LAST_MESSAGE
     ) {
-        console.log(user.psid + ": skipping");
         return;
     }
+
+    log.info('subscriptions', user.psid + ": will send!");
 
     let reply = setupSendAPI(user.psid, null, "CONFIRMED_EVENT_UPDATE");
 
     await user.setLastContacted(db, nowInServeryTimezone());
-    console.log(user.psid + ": last_contacted updated");
+    log.info('subscriptions', user.psid + ": last_contacted updated");
     await menuReply(db, new MealRequest(now, null), user, reply, true, true);
-    console.log(user.psid + ": sent menu");
+    log.info('subscriptions', user.psid + ": sent menu");
 }
 
 export function processSubscriptions(db, users) {
     let now = nowInServeryTimezone();
+
     let promises = [];
     for (let user of users) {
         promises.push(processUserSubscription(db, now, user));
