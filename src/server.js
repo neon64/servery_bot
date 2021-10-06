@@ -21,8 +21,7 @@ export async function runServer() {
 
     // Respond with 'Hello World' when a GET request is made to the homepage
     app.get("/", async (_req, res) => {
-        const response =
-            `<body>
+        const response = `<body>
                 <h1>You have stumbled across The Servery</h1>
                 <p>If you are authorized with the secret credentials, you may be able to use the APIs below</p>
                 <p><a href="/api/menu">/api/menu - dump all items in the menu</a></p>

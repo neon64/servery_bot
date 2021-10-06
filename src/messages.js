@@ -334,7 +334,8 @@ export async function menuReply(
     showUnsubscribe,
     concatReplies
 ) {
-    log.info('messsages',
+    log.info(
+        "messsages",
         "Understood request: " + request.date.toISO() + " meal: " + request.meal
     );
 
@@ -344,7 +345,7 @@ export async function menuReply(
         response.messages = [response.messages.join("\n")];
     }
 
-    log.info('messages', 'sending %j', response.messages);
+    log.info("messages", "sending %j", response.messages);
     const quickReplies = quickRepliesAfterAnswering(
         user,
         request,
@@ -442,7 +443,7 @@ export async function handlePostback(senderPsid, receivedPostback, reply) {
         log.warn("messages", "Invalid payload %j", receivedPostback.payload);
     }
 
-    log.info('messages', "Postback payload %j", payload);
+    log.info("messages", "Postback payload %j", payload);
 
     // Set the response based on the postback payload
     if (payload.should_select_reminder_time === true) {

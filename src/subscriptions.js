@@ -22,7 +22,8 @@ export async function processUserSubscription(db, now, user) {
     )
         .toDuration()
         .as("minutes");
-    log.info('subscriptions',
+    log.info(
+        "subscriptions",
         user.psid +
             ": " +
             minutesAwayFromIdeal +
@@ -40,7 +41,8 @@ export async function processUserSubscription(db, now, user) {
             : Interval.fromDateTimes(user.last_contacted, now)
                   .toDuration()
                   .as("minutes");
-    log.info('subscriptions',
+    log.info(
+        "subscriptions",
         user.psid + ": " + minutesSinceLastMessage + " since last message"
     );
     if (
@@ -50,14 +52,14 @@ export async function processUserSubscription(db, now, user) {
         return;
     }
 
-    log.info('subscriptions', user.psid + ": will send!");
+    log.info("subscriptions", user.psid + ": will send!");
 
     let reply = setupSendAPI(user.psid, null, "CONFIRMED_EVENT_UPDATE");
 
     await user.setLastContacted(db, nowInServeryTimezone());
-    log.info('subscriptions', user.psid + ": last_contacted updated");
+    log.info("subscriptions", user.psid + ": last_contacted updated");
     await menuReply(db, new MealRequest(now, null), user, reply, true, true);
-    log.info('subscriptions', user.psid + ": sent menu");
+    log.info("subscriptions", user.psid + ": sent menu");
 }
 
 export function processSubscriptions(db, users) {

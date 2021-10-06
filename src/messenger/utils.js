@@ -50,7 +50,7 @@ export const handleWebhookVerify = async (req, res) => {
         // Checks the mode and token sent is correct
         if (mode === "subscribe" && token === VERIFY_TOKEN) {
             // Responds with the challenge token from the request
-            log.info('utils', "WEBHOOK_VERIFIED");
+            log.info("utils", "WEBHOOK_VERIFIED");
             res.status(200).send(challenge);
         } else {
             // Responds with '403 Forbidden' if verify tokens do not match

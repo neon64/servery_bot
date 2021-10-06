@@ -38,7 +38,7 @@ export class Meal {
 
     static async lookup(db, query) {
         const sqlDate = query.date.toSQLDate();
-        log.info('database', "Looking for meals on " + sqlDate + " in DB");
+        log.info("database", "Looking for meals on " + sqlDate + " in DB");
         let results;
         if (!query.meal) {
             results = await db.all(
@@ -127,7 +127,7 @@ export class User {
     }
 
     setPayload(payload) {
-        log.verbose('database', "Setting message payload %j", payload);
+        log.verbose("database", "Setting message payload %j", payload);
         this.payload = payload;
     }
 
